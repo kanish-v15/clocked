@@ -1,6 +1,8 @@
-# Life Agent
+# Clocked
 
-Working name. A personal life agent you share with friends.
+A personal life agent you share with friends.
+
+Clock in your workout. Skip it, and your friends' coaches have you clocked.
 
 It tracks your work, habits, streaks, sleep and diet. A tough-love coach checks in every day and calls you out when you slack. Add friends, share only the stats you choose, and set a shared goal, like 100 pushups a day or losing 5 kg. Every night the coaches post a banter recap to the group.
 
