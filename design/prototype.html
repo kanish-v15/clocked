@@ -1,0 +1,1321 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Clocked Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Anton&family=Share+Tech+Mono&display=swap">
+<style>
+/* Layout: a working prototype of Clocked, direction C (Scoreboard). A device on the left (phone frame or laptop window, one shared app state) and a "try these" guide on the right. Identity: stadium scoreboard. Cobalt tiles, sun-yellow Sarge, LED digits for the squad. */
+:root {
+  --bg: #eceef3;
+  --surface: #f7f8fb;
+  --app: #f3f4f8;
+  --card: #ffffff;
+  --ink: #0d0f1a;
+  --muted: #5b6074;
+  --line: #dde0ea;
+  --tb: #0d0f1a;
+  --accent: #2442ff;
+  --accent-soft: rgba(36, 66, 255, 0.14);
+  --on: #ffffff;
+  --sun: #ffd23f;
+  --sun-ink: #0d0f1a;
+  --led-bg: #0d0f1a;
+  --led: #ffd23f;
+  --led-ink: #ffffff;
+  --good: #1f8a4c;
+  --dim: rgba(13, 15, 26, 0.45);
+  --bezel: #0b0b0b;
+  --anton: "Anton", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --led-font: "Share Tech Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #090a10; --surface: #121521; --app: #0e1019; --card: #171b29; --ink: #eef0f8; --muted: #9aa0b8;
+    --line: #272c3e; --tb: #3b4262; --accent: #5b73ff; --accent-soft: rgba(91, 115, 255, 0.22); --on: #ffffff;
+    --led-bg: #05060b; --good: #5fd38d; --dim: rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #090a10; --surface: #121521; --app: #0e1019; --card: #171b29; --ink: #eef0f8; --muted: #9aa0b8;
+  --line: #272c3e; --tb: #3b4262; --accent: #5b73ff; --accent-soft: rgba(91, 115, 255, 0.22); --on: #ffffff;
+  --led-bg: #05060b; --good: #5fd38d; --dim: rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 48px;
+}
+p { margin: 0; }
+h1, h2, h3, h4 { margin: 0; }
+button { font-family: inherit; cursor: pointer; color: inherit; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.page { max-width: 1480px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+/* Page header */
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.top h1 { font: 46px/0.95 var(--anton); text-transform: uppercase; letter-spacing: 0.01em; }
+.top h1 span { font: 600 13px var(--mono); text-transform: none; letter-spacing: 0; background: var(--sun); color: var(--sun-ink); border-radius: 999px; padding: 3px 9px; vertical-align: 12px; margin-left: 6px; }
+.top .sub { color: var(--muted); max-width: 60ch; margin-top: 6px; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; }
+.seg { display: flex; border: 2px solid var(--ink); border-radius: 999px; overflow: hidden; }
+.seg button { font: 600 12px var(--mono); background: transparent; border: 0; padding: 6px 11px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+.stage { display: grid; grid-template-columns: auto minmax(260px, 340px); gap: 26px; align-items: start; justify-content: center; }
+.stage.laptop { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 760px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.device-wrap { display: flex; justify-content: center; min-width: 0; }
+.stage.laptop .device-wrap { overflow-x: auto; justify-content: flex-start; padding-bottom: 8px; }
+
+/* Devices */
+.device.phone { width: min(372px, calc(100vw - 32px)); height: 780px; border-radius: 52px; background: var(--bezel); padding: 11px; position: relative; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22); border: 1px solid #2a2a2a; flex: none; }
+.device.phone .screen { width: 100%; height: 100%; border-radius: 42px; overflow: hidden; position: relative; background: var(--app); }
+.device .island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 96px; height: 27px; background: #000; border-radius: 20px; z-index: 60; }
+.device .homebar { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 4px; border-radius: 2px; background: var(--ink); opacity: 0.85; z-index: 60; pointer-events: none; }
+.device.laptop { width: 1180px; flex: none; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16); background: var(--surface); }
+.device.laptop .chrome { height: 36px; display: flex; align-items: center; gap: 7px; padding: 0 14px; border-bottom: 1px solid var(--line); }
+.device.laptop .chrome i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); }
+.device.laptop .chrome span { margin-left: 12px; font: 12px var(--mono); color: var(--muted); }
+.device.laptop .screen { height: 700px; position: relative; background: var(--app); overflow: hidden; }
+.device.laptop .island, .device.laptop .homebar { display: none; }
+.device.phone .chrome { display: none; }
+
+/* Guide */
+.guide { background: var(--surface); border: 1.5px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.stage.laptop .guide { max-width: 1180px; }
+.guide h2 { font: 24px/1 var(--anton); text-transform: uppercase; letter-spacing: 0.02em; }
+.guide p { color: var(--muted); font-size: 13.5px; }
+.tries { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.stage.laptop .tries { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.tries button { width: 100%; text-align: left; background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 8px 10px; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13.5px; }
+.tries button:hover { border-color: var(--accent); }
+.tries b { font: 15px var(--anton); color: var(--accent); }
+.tries small { display: block; color: var(--muted); font-size: 12px; }
+.guide .reset { align-self: flex-start; font: 600 13px var(--body); background: transparent; border: 1.5px solid var(--ink); border-radius: 999px; padding: 6px 12px; }
+footer { color: var(--muted); font-size: 13px; max-width: 80ch; }
+
+/* ================= App ================= */
+.app { position: absolute; inset: 0; display: flex; flex-direction: column; color: var(--ink); font-family: var(--body); }
+.app.wide { flex-direction: row-reverse; }
+.status { height: 48px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0; font: 600 14px var(--body); }
+.app.wide .status { display: none; }
+.sicons { display: flex; gap: 5px; align-items: center; }
+.sig { display: flex; gap: 1.5px; align-items: flex-end; height: 10px; }
+.sig i { width: 3px; background: currentColor; border-radius: 1px; }
+.bat { width: 23px; height: 11px; border: 1.5px solid currentColor; border-radius: 3px; padding: 1px; }
+.bat i { display: block; height: 100%; width: 72%; background: currentColor; border-radius: 1px; }
+.main { flex: 1; min-height: 0; min-width: 0; overflow-y: auto; padding: 4px 16px 20px; scrollbar-width: none; }
+.main::-webkit-scrollbar { display: none; }
+.app.wide .main { padding: 24px 28px 28px; scrollbar-width: thin; }
+.view { display: flex; flex-direction: column; gap: 12px; }
+.ico svg { width: 22px; height: 22px; display: block; }
+
+/* Nav */
+.nav { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 8px 26px; background: var(--card); border-top: 1px solid var(--line); }
+.nav button { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 600 10.5px var(--body); color: var(--muted); padding: 2px 0; }
+.nav button[aria-current="page"] { color: var(--accent); }
+.nav .wm, .nav .nav-foot { display: none; }
+.app.wide .nav { width: 220px; display: flex; flex-direction: column; gap: 4px; padding: 20px 14px; border-top: 0; border-right: 1px solid var(--line); }
+.app.wide .nav .wm { display: block; font: 30px/1 var(--anton); text-transform: uppercase; margin: 0 0 16px 8px; letter-spacing: 0.01em; }
+.app.wide .nav button { flex-direction: row; gap: 10px; font: 600 14px var(--body); padding: 9px 10px; border-radius: 12px; justify-content: flex-start; }
+.app.wide .nav button[aria-current="page"] { background: var(--led-bg); color: var(--led); box-shadow: inset 0 0 0 1px var(--tb); }
+.app.wide .nav .nav-foot { display: block; margin-top: auto; font-size: 12px; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; padding: 10px; }
+
+/* Shared bits */
+.head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.head .d { font: 600 11px var(--mono); color: var(--muted); }
+.head h2 { font: 32px/1 var(--anton); text-transform: uppercase; letter-spacing: 0.01em; }
+.app.wide .head h2 { font-size: 40px; }
+.streak { background: var(--led-bg); color: var(--led); border-radius: 12px; padding: 5px 10px; text-align: center; border: 0; }
+.streak b { display: block; font: 26px/1 var(--anton); }
+.streak span { font: 9px var(--mono); opacity: 0.85; }
+.ticker { background: var(--sun); color: var(--sun-ink); border-radius: 14px; padding: 9px 11px; font-size: 13.5px; line-height: 1.32; text-align: left; border: 0; width: 100%; }
+.ticker b { font: 14px var(--anton); letter-spacing: 0.04em; margin-right: 5px; }
+.progress { display: flex; align-items: center; gap: 10px; font: 600 12px var(--mono); color: var(--muted); }
+.progress .pb { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.progress .pb i { display: block; height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.25s ease-out; }
+.hint { font-size: 12px; color: var(--muted); text-align: center; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+.label { font: 600 11px var(--mono); color: var(--muted); }
+.pill { font: 700 13px var(--body); background: var(--accent); color: var(--on); border: 0; border-radius: 999px; padding: 9px 15px; }
+.pill.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); }
+.pill.sun { background: var(--sun); color: var(--sun-ink); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 600 13px var(--body); background: var(--card); color: var(--ink); border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 11px; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--on); border-color: var(--accent); }
+.empty { text-align: center; color: var(--muted); padding: 22px 10px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+
+/* Tiles */
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.app.wide .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tile { position: relative; overflow: hidden; border-radius: 20px; border: 2px solid var(--tb); background: var(--card); color: var(--ink); padding: 10px 12px; text-align: left; min-height: 104px; display: flex; flex-direction: column; justify-content: space-between; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.app.wide .tile { min-height: 132px; padding: 14px 16px; }
+.tile .fill { position: absolute; left: 0; right: 0; bottom: 0; background: var(--accent-soft); transition: height 0.25s ease-out; pointer-events: none; }
+.tile > span { position: relative; pointer-events: none; }
+.tile .lbl { font-weight: 700; font-size: 13.5px; padding-right: 44px; overflow-wrap: anywhere; }
+.tile .num { font: 36px/1 var(--anton); font-variant-numeric: tabular-nums; }
+.app.wide .tile .num { font-size: 50px; }
+.tile .sub { font: 600 11px var(--mono); color: var(--muted); }
+.tile .act { position: absolute; top: 10px; right: 11px; font: 600 11px var(--mono); color: var(--accent); }
+.tile .act svg { width: 18px; height: 18px; display: block; }
+.tile.done { background: var(--accent); color: var(--on); border-color: var(--accent); }
+.tile.done .sub, .tile.done .act { color: var(--on); opacity: 0.9; }
+.tile.done .fill { display: none; }
+.tile.rest { border-style: dashed; border-color: var(--line); background: transparent; color: var(--muted); }
+.tile.rest .act { color: var(--muted); }
+.tile.bump { animation: bump 0.24s ease-out; }
+.tile.hl { box-shadow: 0 0 0 4px var(--sun); }
+@keyframes bump { 50% { transform: scale(0.94); } }
+.tile.add { border-style: dashed; border-color: var(--muted); background: transparent; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-weight: 700; }
+.tile.add .plus { font: 34px/1 var(--anton); }
+.tile.say { grid-column: 1 / -1; min-height: 60px; flex-direction: row; align-items: center; justify-content: center; gap: 10px; background: var(--led-bg); color: var(--led); border-color: var(--tb); font: 19px var(--anton); letter-spacing: 0.05em; text-transform: uppercase; }
+.app.wide .tile.say { min-height: 64px; }
+
+/* Today wide layout */
+.today-grid { display: flex; flex-direction: column; gap: 12px; }
+.today-side { display: none; }
+.app.wide .today-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start; }
+.app.wide .today-side { display: flex; flex-direction: column; gap: 12px; }
+.cmdbar { display: none; }
+.app.wide .cmdbar { display: flex; gap: 10px; align-items: center; background: var(--card); border: 2px solid var(--tb); border-radius: 16px; padding: 6px 8px 6px 14px; }
+.cmdbar input { flex: 1; border: 0; background: transparent; font: 15px var(--body); color: var(--ink); padding: 6px 0; min-width: 0; }
+.cmdbar input::placeholder { color: var(--muted); }
+.cmdbar .ico { color: var(--accent); }
+
+/* List style */
+.list { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.lrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); min-height: 56px; }
+.lrow:last-child { border-bottom: 0; }
+.lrow b { display: block; font-size: 14.5px; }
+.lrow small { font-size: 12px; color: var(--muted); }
+.lrow .lbar { height: 4px; width: 130px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 5px; }
+.lrow .lbar i { display: block; height: 100%; background: var(--accent); }
+.lbtn { font: 600 13px var(--mono); border: 1.5px solid var(--ink); background: transparent; border-radius: 999px; padding: 6px 11px; min-width: 58px; }
+.lstamp { font: 600 13px var(--mono); color: var(--accent); border: 2px solid var(--accent); border-radius: 8px; padding: 3px 8px; transform: rotate(-4deg); display: inline-block; background: transparent; }
+
+/* Board */
+.board { background: var(--led-bg); color: var(--led); border: 1px solid var(--tb); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.board .bh { display: flex; justify-content: space-between; font: 12px var(--led-font); opacity: 0.85; }
+.board h3 { font: 28px/1.02 var(--anton); text-transform: uppercase; color: var(--led-ink); letter-spacing: 0.02em; }
+.br { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 0; border-top: 1px solid rgba(255, 210, 63, 0.18); }
+.br .r { font: 16px var(--anton); }
+.br .nm { font: 600 14px var(--body); color: var(--led-ink); }
+.br .sc { font: 28px/1 var(--led-font); font-variant-numeric: tabular-nums; }
+.br.me .nm { color: var(--led); }
+.board .rules { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.board .rules span { font: 11px var(--led-font); border: 1px solid rgba(255, 210, 63, 0.4); border-radius: 999px; padding: 2px 8px; }
+.gossip { background: var(--card); border: 2px solid var(--tb); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
+.gossip .gh { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 2px 10px; }
+.gossip .gh b { font: 16px var(--anton); letter-spacing: 0.05em; text-transform: uppercase; }
+.gossip .gh span { font: 11px var(--mono); color: var(--muted); }
+.gossip p { font-size: 13.5px; line-height: 1.38; }
+.gossip p b { color: var(--accent); }
+.gossip .note { font-size: 11.5px; color: var(--muted); }
+.gossip.fresh { box-shadow: 0 0 0 4px var(--sun); }
+.squad-grid { display: flex; flex-direction: column; gap: 12px; }
+.app.wide .squad-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.squad-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.mem-row { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.mem-row:last-child { border-bottom: 0; }
+.av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--body); background: var(--sun); color: var(--sun-ink); }
+.av.me { background: var(--accent); color: var(--on); }
+.mem-row b { font-size: 14px; }
+.mini { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.mini span { font: 600 11px var(--mono); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; color: var(--muted); }
+.chal-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.chal-row:last-child { border-bottom: 0; }
+.chal-row b { display: block; font-size: 14px; }
+.chal-row small { color: var(--muted); font-size: 12px; }
+
+/* Sarge */
+.sarge-head { display: flex; align-items: center; gap: 12px; }
+.stripes { width: 46px; height: 46px; border-radius: 14px; background: var(--led-bg); color: var(--led); border: 1px solid var(--tb); display: grid; place-items: center; flex: none; }
+.stripes svg { width: 26px; height: 26px; }
+.sarge-head h2 { font: 32px/1 var(--anton); text-transform: uppercase; letter-spacing: 0.02em; }
+.sarge-head span { font: 11px var(--mono); color: var(--muted); }
+.dial { display: grid; grid-template-columns: repeat(3, 1fr); border: 2px solid var(--tb); border-radius: 14px; overflow: hidden; }
+.dial button { background: transparent; border: 0; font: 700 13px var(--body); padding: 8px 0; }
+.dial button[aria-pressed="true"] { background: var(--led-bg); color: var(--led); }
+.memchips { display: flex; flex-wrap: wrap; gap: 5px; }
+.memchips span { font-size: 12px; background: var(--sun); color: var(--sun-ink); border-radius: 999px; padding: 3px 4px 3px 9px; display: inline-flex; align-items: center; gap: 4px; }
+.memchips button { border: 0; background: rgba(13, 15, 26, 0.12); color: var(--sun-ink); width: 18px; height: 18px; border-radius: 50%; font: 700 11px var(--body); display: grid; place-items: center; padding: 0; }
+.chat { display: flex; flex-direction: column; gap: 6px; }
+.msg { max-width: 84%; padding: 9px 12px; border-radius: 18px; font-size: 14px; line-height: 1.36; }
+.msg.s { background: var(--led-bg); color: var(--led); border: 1px solid var(--tb); align-self: flex-start; border-bottom-left-radius: 5px; }
+.msg.m { background: var(--accent); color: var(--on); align-self: flex-end; border-bottom-right-radius: 5px; }
+.msg time { display: block; font: 10px var(--mono); opacity: 0.65; margin-top: 3px; }
+.logline { align-self: flex-start; font: 600 12px var(--mono); color: var(--accent); border: 1.5px dashed var(--accent); border-radius: 10px; padding: 3px 9px; }
+.qr { display: flex; flex-wrap: wrap; gap: 6px; }
+.qr button { font: 700 13px var(--body); background: transparent; color: var(--accent); border: 2px solid var(--accent); border-radius: 999px; padding: 6px 12px; }
+.composer { display: flex; gap: 8px; align-items: center; }
+.composer input { flex: 1; min-width: 0; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 10px 14px; font: 14px var(--body); }
+.roundbtn { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 1.5px solid var(--tb); background: var(--led-bg); color: var(--led); display: grid; place-items: center; padding: 0; }
+.roundbtn.blue { background: var(--accent); color: var(--on); }
+.roundbtn svg { width: 20px; height: 20px; }
+.sarge-grid { display: flex; flex-direction: column; gap: 12px; }
+.app.wide .sarge-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
+.sarge-side { display: flex; flex-direction: column; gap: 12px; }
+.app:not(.wide) .sarge-side { order: -1; }
+.chat-wrap { display: flex; flex-direction: column; gap: 10px; }
+
+/* Me */
+.me-grid { display: flex; flex-direction: column; gap: 12px; }
+.app.wide .me-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.sec { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.sec h3 { font: 18px/1 var(--anton); text-transform: uppercase; letter-spacing: 0.04em; }
+.sec .lead { font-size: 12.5px; color: var(--muted); }
+.sec.hl { box-shadow: 0 0 0 4px var(--sun); }
+.tg { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.tg:last-child { border-bottom: 0; }
+.tg b { font-size: 14px; display: block; }
+.tg small { font-size: 11.5px; color: var(--muted); }
+.sw { width: 44px; height: 26px; border-radius: 999px; background: var(--line); border: 0; position: relative; padding: 0; flex: none; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform 0.15s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+.sw[aria-pressed="true"] { background: var(--accent); }
+.sw[aria-pressed="true"]::after { transform: translateX(18px); }
+.locked { font: 600 11px var(--mono); color: var(--muted); display: inline-flex; gap: 4px; align-items: center; }
+.locked svg { width: 13px; height: 13px; }
+.pcard { background: var(--led-bg); color: var(--led); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.pcard .ph { display: flex; justify-content: space-between; font: 12px var(--led-font); opacity: 0.85; }
+.pcard .pc { display: flex; flex-wrap: wrap; gap: 5px; }
+.pcard .pc span { font: 12px var(--led-font); border: 1px solid rgba(255, 210, 63, 0.45); border-radius: 999px; padding: 2px 8px; }
+.profile { display: flex; gap: 12px; align-items: center; }
+.profile .av { width: 52px; height: 52px; font-size: 20px; }
+.profile b { font: 24px/1 var(--anton); text-transform: uppercase; }
+.profile small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+.hrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-top: 0; text-align: left; }
+.hrow:last-child { border-bottom: 0; }
+.hrow b { font-size: 14px; display: block; }
+.hrow small { font-size: 12px; color: var(--muted); }
+.hrow .days { font: 600 11px var(--mono); color: var(--muted); }
+
+/* History */
+.hist-scroll { overflow-x: auto; }
+table.hist { width: 100%; min-width: 520px; border-collapse: separate; border-spacing: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; font-size: 12.5px; }
+table.hist th { font: 600 11px var(--mono); color: var(--muted); padding: 9px 4px; text-align: center; border-bottom: 1px dashed var(--line); }
+table.hist th.now { color: var(--accent); }
+table.hist td { text-align: center; padding: 9px 4px; border-bottom: 1px solid var(--line); }
+table.hist tr:last-child td { border-bottom: 0; }
+table.hist th:first-child, table.hist td:first-child { text-align: left; padding-left: 12px; }
+table.hist td:first-child { font-weight: 700; white-space: nowrap; }
+.hs { display: inline-block; font: 600 11px var(--mono); color: var(--accent); border: 1.5px solid var(--accent); border-radius: 6px; padding: 1px 5px; transform: rotate(-3deg); }
+.hp { display: inline-block; font: 500 11px var(--mono); color: var(--muted); border: 1.5px dashed var(--muted); border-radius: 6px; padding: 1px 5px; }
+.hm { font: 500 11px var(--mono); color: var(--muted); opacity: 0.7; }
+.hc { display: inline-block; font: 600 10px var(--mono); color: var(--sun-ink); background: var(--sun); border-radius: 999px; padding: 1px 6px; }
+.hr { font: 500 11px var(--mono); color: var(--muted); }
+.back { align-self: flex-start; font: 600 13px var(--body); background: transparent; border: 0; color: var(--accent); padding: 0; }
+
+/* Overlays */
+.scrim { position: absolute; inset: 0; background: var(--dim); z-index: 40; display: flex; align-items: flex-end; }
+.app.wide .scrim { align-items: center; justify-content: center; }
+.sheet { background: var(--card); width: 100%; border-radius: 28px 28px 0 0; padding: 12px 18px 30px; max-height: 90%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.app.wide .sheet { width: 480px; border-radius: 24px; padding: 20px 24px 24px; max-height: 88%; }
+.grab { width: 42px; height: 4px; border-radius: 2px; background: var(--line); align-self: center; }
+.app.wide .grab { display: none; }
+.sheet h3 { font: 26px/1.05 var(--anton); text-transform: uppercase; letter-spacing: 0.02em; }
+.sheet .lead { font-size: 13px; color: var(--muted); }
+.sheet .actions { display: flex; gap: 8px; align-items: center; }
+.sheet .actions .pill { flex: 1; padding: 13px; font-size: 15px; border-radius: 16px; }
+.sheet .actions .pill.ghost { flex: 0 0 auto; padding: 13px 16px; }
+.textbtn { background: none; border: 0; font: 600 14px var(--body); color: var(--muted); padding: 6px; }
+.stepper { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.stepper button { width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--tb); background: transparent; font: 26px/1 var(--anton); }
+.stepper output { font: 64px/1 var(--anton); min-width: 140px; text-align: center; font-variant-numeric: tabular-nums; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field input { border: 1.5px solid var(--line); background: var(--app); color: var(--ink); border-radius: 12px; padding: 10px 12px; font: 15px var(--body); width: 100%; }
+.days7 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.days7 button { aspect-ratio: 1; max-width: 100%; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); font: 700 13px var(--body); padding: 0; }
+.days7 button[aria-pressed="true"] { background: var(--accent); color: var(--on); border-color: var(--accent); }
+.wave { display: flex; gap: 6px; height: 64px; align-items: center; justify-content: center; }
+.wave i { width: 7px; height: 14px; background: var(--accent); border-radius: 4px; animation: wave 0.9s ease-in-out infinite; }
+.wave i:nth-child(2) { animation-delay: 0.1s; } .wave i:nth-child(3) { animation-delay: 0.2s; } .wave i:nth-child(4) { animation-delay: 0.3s; }
+.wave i:nth-child(5) { animation-delay: 0.4s; } .wave i:nth-child(6) { animation-delay: 0.5s; } .wave i:nth-child(7) { animation-delay: 0.6s; }
+@keyframes wave { 0%, 100% { height: 12px; } 50% { height: 54px; } }
+.heard { font-size: 16px; font-style: italic; }
+.parsed { display: flex; flex-direction: column; gap: 6px; }
+.pitem { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1.5px solid var(--line); border-radius: 14px; }
+.tick { width: 24px; height: 24px; flex: none; border-radius: 8px; background: var(--accent); color: var(--on); display: grid; place-items: center; }
+.tick svg { width: 15px; height: 15px; }
+.pitem b { font-size: 14.5px; }
+.pitem small { display: block; color: var(--muted); font-size: 12px; }
+.rough { font: 600 10px var(--mono); color: var(--sun-ink); background: var(--sun); border-radius: 999px; padding: 1px 7px; margin-left: 4px; vertical-align: 1px; }
+.viewfinder { position: relative; height: 250px; border-radius: 20px; background: radial-gradient(circle at 30% 20%, #6b5a4a, #2f261f 70%); overflow: hidden; }
+.plate { position: absolute; width: 200px; height: 200px; left: 50%; top: 50%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, #f4f1ea 58%, #dcd6ca 60%, #efebe2 72%); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35); }
+.dosa { position: absolute; width: 140px; height: 44px; border-radius: 40px; background: linear-gradient(180deg, #e2a64a, #b8742a); left: 30px; transform: rotate(-18deg); }
+.dosa.d1 { top: 54px; } .dosa.d2 { top: 96px; left: 24px; transform: rotate(-8deg); }
+.bowl { position: absolute; width: 42px; height: 42px; border-radius: 50%; border: 4px solid #d8d2c5; }
+.bowl.g { background: #7d9b4a; right: 18px; top: 26px; } .bowl.r { background: #c8642c; right: 26px; bottom: 22px; }
+.bracket { position: absolute; width: 26px; height: 26px; border: 3px solid #fff; opacity: 0.85; }
+.bracket.tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; border-radius: 6px 0 0 0; }
+.bracket.tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; border-radius: 0 6px 0 0; }
+.bracket.bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; border-radius: 0 0 0 6px; }
+.bracket.br2 { bottom: 14px; right: 14px; border-left: 0; border-top: 0; border-radius: 0 0 6px 0; }
+.shutter { width: 66px; height: 66px; border-radius: 50%; border: 4px solid var(--ink); background: var(--card); align-self: center; padding: 0; display: grid; place-items: center; }
+.shutter i { width: 50px; height: 50px; border-radius: 50%; background: var(--accent); display: block; }
+.thinking { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.45); color: #fff; font: 600 14px var(--mono); }
+.est { display: flex; gap: 10px; }
+.est div { flex: 1; background: var(--app); border-radius: 14px; padding: 9px 11px; }
+.est b { display: block; font: 30px/1 var(--anton); }
+.est span { font-size: 12px; color: var(--muted); }
+.linkbox { font: 600 15px var(--mono); background: var(--app); border: 1.5px dashed var(--muted); border-radius: 12px; padding: 12px; text-align: center; user-select: all; -webkit-user-select: all; }
+.steps { display: flex; gap: 5px; }
+.steps i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+.steps i.on { background: var(--accent); }
+
+.banner { position: absolute; top: 50px; left: 10px; right: 10px; z-index: 45; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 10px 12px; box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25); display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; width: auto; animation: drop 0.3s ease-out; }
+.app.wide .banner { top: 16px; right: 16px; left: auto; width: 360px; }
+@keyframes drop { from { transform: translateY(-20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.banner .bi { width: 38px; height: 38px; border-radius: 10px; background: var(--led-bg); color: var(--led); display: grid; place-items: center; font: 20px var(--anton); }
+.banner .bt { display: flex; justify-content: space-between; font: 600 11px var(--mono); color: var(--muted); }
+.banner p { font-size: 13.5px; line-height: 1.3; }
+.banner p b { font-weight: 700; }
+.toast { position: absolute; bottom: 96px; left: 16px; right: 16px; z-index: 44; background: var(--ink); color: var(--app); border-radius: 16px; padding: 11px 14px; font-size: 13.5px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2); }
+.app.wide .toast { bottom: 22px; left: auto; right: 22px; width: 340px; }
+
+/* Onboarding */
+.onb { position: absolute; inset: 0; z-index: 50; background: var(--app); display: flex; flex-direction: column; padding: 58px 22px 34px; gap: 14px; overflow-y: auto; }
+.app.wide .onb { background: var(--dim); align-items: center; justify-content: center; padding: 30px; }
+.onb-card { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.app.wide .onb-card { flex: none; width: 520px; background: var(--card); border-radius: 26px; padding: 28px; }
+.onb h2 { font: 40px/0.98 var(--anton); text-transform: uppercase; letter-spacing: 0.01em; }
+.onb .lead { color: var(--muted); font-size: 14.5px; }
+.onb .foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.app.wide .onb .foot { margin-top: 8px; }
+.onb .foot .pill { padding: 14px; font-size: 16px; border-radius: 16px; }
+.howto { display: flex; flex-direction: column; gap: 8px; }
+.howto div { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 9px 11px; font-size: 14px; }
+.app.wide .howto div { background: var(--app); }
+.howto b { font: 20px var(--anton); color: var(--accent); }
+.bigmark { font: 64px/0.9 var(--anton); text-transform: uppercase; }
+.stamp-in { display: inline-block; font: 600 16px var(--mono); color: var(--accent); border: 3px solid var(--accent); border-radius: 8px; padding: 3px 9px; transform: rotate(-6deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .wave i { animation: none; height: 28px; }
+  .tile.bump, .banner { animation: none; }
+  .tile .fill, .progress .pb i, .sw::after { transition: none; }
+}
+</style>
+
+<div class="page">
+  <header class="top">
+    <div>
+      <h1>Clocked <span>prototype</span></h1>
+      <p class="sub">Direction C, the Scoreboard, as a working app. Everything is clickable, and your changes stay after a refresh. The people and numbers are made up.</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Device">
+        <button type="button" data-device="phone" aria-pressed="true">Phone</button>
+        <button type="button" data-device="laptop" aria-pressed="false">Laptop</button>
+      </div>
+      <div class="seg theme" role="group" aria-label="Theme">
+        <button type="button" data-t="light" aria-pressed="false">Light</button>
+        <button type="button" data-t="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <div class="device-wrap">
+      <div class="device phone" id="device">
+        <div class="chrome"><i></i><i></i><i></i><span>Clocked</span></div>
+        <div class="screen">
+          <div class="island"></div>
+          <div class="app" id="app"></div>
+          <div class="homebar"></div>
+        </div>
+      </div>
+    </div>
+    <aside class="guide" aria-label="Things to try">
+      <h2>Try these</h2>
+      <p>Each one jumps you to the right screen. You can also just use the app.</p>
+      <ol class="tries" id="tries">
+        <li><button type="button" data-try="tap"><b>1</b><span>Log pushups with one tap<small>Tap the Pushups tile</small></span></button></li>
+        <li><button type="button" data-try="hold"><b>2</b><span>Set an exact number<small>Hold any tile</small></span></button></li>
+        <li><button type="button" data-try="voice"><b>3</b><span>Say your day<small>One sentence, three logs</small></span></button></li>
+        <li><button type="button" data-try="meal"><b>4</b><span>Snap a meal<small>Rough calories in one tap</small></span></button></li>
+        <li><button type="button" data-try="add"><b>5</b><span>Add your own habit<small>Any unit, any days</small></span></button></li>
+        <li><button type="button" data-try="callout"><b>6</b><span>Get Sarge's 8:30 pm call-out<small>Then answer from the chat</small></span></button></li>
+        <li><button type="button" data-try="recap"><b>7</b><span>Get the 10 pm gossip<small>Built from tonight's numbers</small></span></button></li>
+        <li><button type="button" data-try="challenge"><b>8</b><span>Start a squad challenge<small>Goal, rules, stakes, recap</small></span></button></li>
+        <li><button type="button" data-try="share"><b>9</b><span>Choose what your squad sees<small>The gossip uses only this</small></span></button></li>
+        <li><button type="button" data-try="style"><b>10</b><span>Switch your Today screen<small>Tiles, list or chat</small></span></button></li>
+        <li><button type="button" data-try="history"><b>11</b><span>See your week<small>Tap the streak</small></span></button></li>
+        <li><button type="button" data-try="onboard"><b>12</b><span>Start as a new user<small>The first-run setup</small></span></button></li>
+      </ol>
+      <button type="button" class="reset" id="resetBtn">Reset the prototype</button>
+    </aside>
+  </div>
+
+  <footer>Made 21 Oct 2026 for Clocked (github.com/kanish-v15/clocked). The voice button plays a pretend recording, the camera shows a pretend photo, and notifications are simulated inside the frame. Safety rule built into every Sarge line: hard on effort, never on bodies or food.</footer>
+</div>
+
+<script>
+(() => {
+const KEY = "clocked-proto-v1";
+const DOW = 1; // Tuesday, with Monday = 0
+const DLETTER = ["M", "T", "W", "T", "F", "S", "S"];
+const DNAME = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const ALL = [0, 1, 2, 3, 4, 5, 6];
+const AREAS = [["fitness", "Fitness", "Workouts, reps, steps"], ["sleep", "Sleep", "Hours and wake time"], ["diet", "Diet", "Meals and water"], ["work", "Work", "Focus time"], ["mind", "Mind", "Reading, journaling"]];
+const UNITS = [["reps", "reps"], ["min", "minutes"], ["glasses", "glasses"], ["pages", "pages"], ["times", "times"], ["km", "km"], ["steps", "steps"]];
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const ICON = {
+  today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
+  squad: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3"/><circle cx="17" cy="10" r="2.4"/><path d="M3.5 19c0-3 2.6-5 5.5-5s5.5 2 5.5 5M14.5 18.6c.3-2.1 1.8-3.4 3.6-3.4 1.6 0 2.9 1 3.1 3"/></svg>',
+  sarge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l7 4 7-4M5 10.5l7 4 7-4M5 16l7 4 7-4"/></svg>',
+  me: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2.5"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8.5 7l1.8-3h3.4l1.8 3"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+};
+
+/* ---------- State ---------- */
+function sample() {
+  return {
+    v: 1, onboarded: true, view: "today", style: "tiles", push: "firm", streak: 12, best: 21, name: "Kanish",
+    areas: { fitness: true, sleep: true, diet: true, work: true, mind: true },
+    habits: [
+      { id: "push", name: "Pushups", area: "fitness", unit: "reps", goal: 100, step: 10, val: 60, days: ALL.slice(), kind: "count" },
+      { id: "water", name: "Water", area: "diet", unit: "glasses", goal: 8, step: 1, val: 5, days: ALL.slice(), kind: "count" },
+      { id: "focus", name: "Focus", area: "work", unit: "min", goal: 240, step: 25, val: 135, days: [0, 1, 2, 3, 4], kind: "count" },
+      { id: "sleep", name: "Sleep", area: "sleep", unit: "hours", goal: 1, step: 1, val: 1, days: ALL.slice(), kind: "sleep", note: "7h 10m", at: "06:30" },
+      { id: "meals", name: "Meals", area: "diet", unit: "meals", goal: 3, step: 1, val: 1, days: ALL.slice(), kind: "meal", meals: [{ name: "Breakfast", what: "Idli and sambar", kcal: 310, protein: 11 }] },
+      { id: "read", name: "Read", area: "mind", unit: "pages", goal: 20, step: 20, val: 0, days: ALL.slice(), kind: "once" },
+      { id: "gym", name: "Gym", area: "fitness", unit: "times", goal: 1, step: 1, val: 0, days: [0, 2, 4], kind: "once" },
+    ],
+    share: { streak: true, workouts: true, sleep: true, focus: false, weight: false, meals: false },
+    memory: ["Goal: 100 pushups a day", "Promise: deck done by 6 pm", "Excuse used twice: \"too tired\"", "Trains best in the evening"],
+    chat: [
+      { f: "s", t: "Morning. You slept 7h 10m. Today: 100 pushups, 8 glasses of water and 4 hours of focus. Gym is a rest day.", at: "07:02" },
+      { f: "m", t: "on it", at: "07:05" },
+      { f: "s", t: "Deck by 6. I'll check at 1.", at: "07:05" },
+      { f: "s", t: "1 pm. Deck?", at: "13:00" },
+      { f: "m", t: "sent it", at: "13:04" },
+      { f: "s", t: "Promise kept.", at: "13:04", log: "Deck · clocked 13:04" },
+    ],
+    flow: null,
+    squad: {
+      name: "The Grind Squad", active: 0, nudged: false,
+      members: [
+        { id: "aisha", name: "Aisha", streak: 21, shares: ["Streak 21", "Pushups 100/100", "Slept 7h 40m"] },
+        { id: "meera", name: "Meera", streak: 9, shares: ["Streak 9", "Pushups 80/100"] },
+        { id: "rohan", name: "Rohan", streak: 2, shares: ["Streak 2", "Pushups 0/100", "Focus 5h 10m"] },
+      ],
+      challenges: [
+        { id: "c1", type: "reps", habit: "push", title: "100 pushups a day", target: 100, length: 30, day: 9, proof: "trust", stakes: "coffee", time: "10 pm", spice: "spicy", vals: { aisha: 100, meera: 80, rohan: 0 } },
+      ],
+      recap: { at: "Last night · 10:00 pm", fresh: false, lines: [
+        ["Aisha's coach", "100 before 7 am. Again. Some people are built different."],
+        ["Rohan's coach", "Rohan \"rested his triceps\" for the third night running. The squad is not convinced."],
+        ["Your coach", "You came back from Saturday's miss. Comeback day used. No more freebies this week."],
+      ] },
+    },
+  };
+}
+function blankUser() {
+  const s = sample();
+  s.onboarded = false; s.streak = 0; s.best = 0; s.habits = []; s.chat = []; s.memory = []; s.flow = null; s.squad = null; s.view = "today"; s.style = "tiles";
+  return s;
+}
+function load() { try { const r = localStorage.getItem(KEY); if (r) { const s = JSON.parse(r); if (s && s.v === 1) return s; } } catch (e) {} return null; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+let S = load() || sample();
+let device = "phone";
+try { device = localStorage.getItem(KEY + "-device") || "phone"; } catch (e) {}
+
+// Things that never need to survive a refresh
+const UI = { sheet: null, toast: null, banner: null, bump: null, hl: null, longFired: false, onb: null, voiceIdx: 0, fresh: false, scrollTo: null };
+let toastTimer = null, bannerTimer = null, listenTimer = null, pressTimer = null;
+
+/* ---------- Helpers ---------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const now = () => { const d = new Date(); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+const hm = m => Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
+const H = id => S.habits.find(h => h.id === id);
+const areaOn = h => S.areas[h.area] !== false;
+const visible = () => S.habits.filter(areaOn);
+const scheduled = h => h.days.includes(DOW);
+const isDone = h => h.val >= h.goal;
+const unitLabel = h => (UNITS.find(u => u[0] === h.unit) || [h.unit, h.unit])[1];
+function valText(h) {
+  if (h.kind === "sleep") return h.val ? (h.note || "logged").replace(/h /, ":").replace("m", "") : "0";
+  if (h.unit === "min") return hm(h.val);
+  if (h.kind === "once" && h.unit !== "pages") return isDone(h) ? "Done" : "0";
+  if (h.kind === "once") return isDone(h) ? String(h.goal) : "0";
+  return String(h.val);
+}
+function goalText(h) {
+  if (h.kind === "sleep") return h.val ? "up " + (h.at || "06:30") : "tap to log";
+  if (h.unit === "min") return "of " + hm(h.goal);
+  if (h.kind === "once" && h.unit !== "pages") return isDone(h) ? "clocked " + (h.doneAt || "") : "not yet";
+  if (h.kind === "once") return "of " + h.goal + " pages";
+  return "of " + h.goal + " " + unitLabel(h);
+}
+function stepText(h) {
+  if (h.kind === "meal") return "photo";
+  if (h.kind === "once") return "tap";
+  if (h.kind === "sleep") return "log";
+  return "+" + h.step + (h.unit === "min" ? "m" : "");
+}
+function nextDay(h) { for (let i = 1; i <= 7; i++) { const d = (DOW + i) % 7; if (h.days.includes(d)) return DNAME[d]; } return "later"; }
+function activeChal() { return S.squad && S.squad.challenges[S.squad.active] || null; }
+function myChalVal(c) {
+  if (!c) return 0;
+  if (c.type === "streak") return S.streak;
+  if (c.type === "kilos") return c.mine != null ? c.mine : 1.2;
+  const h = H(c.habit); return h ? h.val : 0;
+}
+
+/* ---------- Sarge voice ---------- */
+function remainText(h) {
+  const left = Math.max(0, h.goal - h.val);
+  if (h.unit === "min") return hm(left) + " of focus";
+  if (h.kind === "once") return h.name.toLowerCase() + " still to do";
+  return left + " " + (h.unit === "reps" ? h.name.toLowerCase() : unitLabel(h));
+}
+function sargeLine() {
+  if (!S.habits.length) return "First day. Add a habit or say what you did, and I'll take it from there.";
+  const todo = visible().filter(h => scheduled(h) && !isDone(h) && h.kind !== "sleep");
+  const c = activeChal();
+  todo.sort((a, b) => (c && b.id === c.habit) - (c && a.id === c.habit));
+  if (!todo.length) return { gentle: "Everything's clocked. Nice work today.", firm: "All clocked. Promise kept.", brutal: "All clocked. Now do it again tomorrow." }[S.push];
+  const h = todo[0], r = remainText(h);
+  if (S.push === "gentle") return `Small step? ${cap(r)} left. Even a little counts.`;
+  if (S.push === "brutal") return `${cap(r)} left. You said ${h.unit === "min" ? hm(h.goal) : h.goal}. The squad is watching. Move.`;
+  return `${cap(r)} left. The recap goes out at ${c ? c.time : "10 pm"}.`;
+}
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+function reply(kind, h) {
+  const P = S.push;
+  if (kind === "done") return { gentle: "Lovely. That's clocked.", firm: "Clocked. Promise kept.", brutal: "Clocked. That's the standard." }[P];
+  if (kind === "partial") return { gentle: `Good going. ${cap(remainText(h))} left whenever you're ready.`, firm: `${cap(remainText(h))} left. I'll ask again at 9:30.`, brutal: `${cap(remainText(h))} left. Half done is not done.` }[P];
+  if (kind === "skip") return { gentle: "That's ok. Rest up, tomorrow counts too.", firm: "Noted. The squad will hear about it.", brutal: "Skipping. The squad will hear about it, and so will tomorrow's numbers." }[P];
+  if (kind === "notyet") return { gentle: "No rush. I'll check before bed.", firm: "Before bed, then. I'll check at 10:45.", brutal: "Then it's tonight. I'll be back at 10:45." }[P];
+  return "";
+}
+
+/* ---------- Logging ---------- */
+function applyAdd(h, add, quiet) {
+  const was = isDone(h);
+  h.val = Math.max(0, h.val + add);
+  if (!was && isDone(h)) { h.doneAt = now(); if (!quiet) toast(`${h.name} clocked at ${h.doneAt}.`); maybeProof(h); }
+}
+function maybeProof(h) {
+  const c = activeChal();
+  if (c && c.habit === h.id && c.proof !== "trust") UI.sheet = { k: "proof", id: h.id, phase: "ask" };
+}
+function addMeal(h, m) {
+  const names = ["Breakfast", "Lunch", "Dinner", "Snack"];
+  const meal = Object.assign({ name: names[Math.min(h.meals.length, 3)] }, m);
+  h.meals.push(meal);
+  applyAdd(h, 1, true);
+  return meal;
+}
+function tapHabit(h) {
+  if (!scheduled(h)) { toast(`Rest day for ${h.name}. Back on ${nextDay(h)}.`); return; }
+  if (h.kind === "meal") { UI.sheet = { k: "meal", id: h.id, phase: "view" }; return; }
+  if (h.kind === "sleep") { UI.sheet = { k: "exact", id: h.id }; return; }
+  if (isDone(h)) { toast(`${h.name} is clocked. Hold the tile to change it.`); return; }
+  if (h.kind === "once") applyAdd(h, h.goal - h.val);
+  else applyAdd(h, h.step);
+  UI.bump = h.id;
+}
+const VOICE = [
+  "Did 40 pushups, drank 2 glasses of water and read 20 pages.",
+  "Did 30 pushups and 25 minutes of focus.",
+  "Had two dosas for lunch and 1 glass of water.",
+];
+function parse(text) {
+  const t = text.toLowerCase(), out = [];
+  const f = id => { const h = H(id); return h && areaOn(h) ? h : null; };
+  const n = re => { const m = t.match(re); return m ? parseInt(m[1], 10) : null; };
+  let v;
+  if ((v = n(/(\d+)\s*(?:push[\s-]?ups?|reps?)/)) && f("push")) out.push({ id: "push", add: v, label: `Pushups +${v}` });
+  if ((v = n(/(\d+)\s*(?:glass(?:es)?|cups?)/)) && f("water")) out.push({ id: "water", add: v, label: `Water +${v} ${v === 1 ? "glass" : "glasses"}` });
+  if ((v = n(/(\d+)\s*min(?:ute)?s?\b/)) && f("focus")) out.push({ id: "focus", add: v, label: `Focus +${v} min` });
+  if ((v = n(/(\d+)\s*pages?/)) && f("read")) out.push({ id: "read", add: v, label: `Read ${v} pages` });
+  else if (/\bread\b/.test(t) && !/not read|didn.?t read/.test(t) && f("read")) out.push({ id: "read", add: f("read").goal, label: "Read: done" });
+  if (/\bgym\b|worked out/.test(t) && f("gym")) out.push({ id: "gym", add: 1, label: "Gym: done" });
+  if (/(dosa|idli|rice|lunch|dinner|breakfast|\bate\b|meal)/.test(t) && f("meals")) out.push({ id: "meals", meal: { what: /dosa/.test(t) ? "2 dosa, chutney, sambar" : "Meal", kcal: 340, protein: 9 }, label: (/dinner/.test(t) ? "Dinner" : /breakfast/.test(t) ? "Breakfast" : "Lunch") + ": " + (/dosa/.test(t) ? "2 dosa" : "meal"), sub: "About 340 kcal, 9 g protein", rough: true });
+  S.habits.filter(h => !["push", "water", "focus", "read", "gym", "meals", "sleep"].includes(h.id) && areaOn(h)).forEach(h => {
+    const nm = h.name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const m = t.match(new RegExp("(\\d+)\\s*(?:[a-z]+\\s+){0,2}" + nm));
+    if (m) out.push({ id: h.id, add: parseInt(m[1], 10), label: `${h.name} +${m[1]}` });
+    else if (t.includes(h.name.toLowerCase())) out.push({ id: h.id, add: h.kind === "once" ? h.goal : h.step, label: `${h.name}: +${h.kind === "once" ? "done" : h.step}` });
+  });
+  return out;
+}
+function applyItems(items) {
+  items.forEach(it => {
+    const h = H(it.id); if (!h) return;
+    if (it.meal) addMeal(h, it.meal);
+    else applyAdd(h, it.add, true);
+  });
+}
+
+/* ---------- Chat and check-in flow ---------- */
+function say(t, extra) { S.chat.push(Object.assign({ f: "s", t, at: now() }, extra || {})); trimChat(); }
+function me(t) { S.chat.push({ f: "m", t, at: now() }); trimChat(); }
+function trimChat() { if (S.chat.length > 60) S.chat = S.chat.slice(-60); }
+function startFlow() {
+  const q = visible().filter(h => scheduled(h) && !isDone(h) && h.kind !== "meal" && h.kind !== "sleep").slice(0, 3).map(h => h.id);
+  if (!q.length) { say({ gentle: "Checked in. Everything's clocked already. Rest well.", firm: "Checked in. All clocked. Good.", brutal: "Checked in. All clocked. Same again tomorrow." }[S.push]); S.flow = null; return; }
+  S.flow = { q, i: 0 };
+  askFlow();
+}
+function askFlow() {
+  const id = S.flow && S.flow.q[S.flow.i]; const h = id && H(id);
+  if (!h) { S.flow = null; const v = visible().filter(scheduled); say(`That's the day. ${v.filter(isDone).length} of ${v.length} clocked.`); return; }
+  if (h.kind === "once") say(`${h.name}: not done yet. Done?`);
+  else say(`${h.name}: ${h.unit === "min" ? hm(h.val) + " of " + hm(h.goal) : h.val + " of " + h.goal}. What's the move?`);
+}
+function flowOptions() {
+  const id = S.flow && S.flow.q[S.flow.i]; const h = id && H(id);
+  if (!h) return [];
+  if (h.kind === "once") return [["Done", "done"], ["Not yet", "notyet"]];
+  const s = h.step, u = h.unit === "min" ? "m" : "";
+  return [[`+${s}${u}`, "add:" + s], [`+${s * 2}${u}`, "add:" + s * 2], ["Done all", "done"], ["Skip today", "skip"]];
+}
+function answerFlow(code, label) {
+  const h = H(S.flow.q[S.flow.i]);
+  me(label);
+  if (code === "done") { applyAdd(h, h.goal - h.val, true); say(reply("done", h), { log: `${h.name} · clocked ${now()}` }); }
+  else if (code === "skip") { say(reply("skip", h)); }
+  else if (code === "notyet") { say(reply("notyet", h)); }
+  else { const add = parseInt(code.split(":")[1], 10); applyAdd(h, add, true); say(isDone(h) ? reply("done", h) : reply("partial", h), { log: `${h.name} +${add}${h.unit === "min" ? " min" : ""}` }); }
+  S.flow.i++;
+  askFlow();
+}
+function handleText(text) {
+  const t = text.trim(); if (!t) return;
+  me(t);
+  const items = parse(t);
+  if (items.length) {
+    applyItems(items);
+    say(`Got it. ${items.map(i => i.label).join(", ")}.`, { log: "Clocked " + items.length + (items.length === 1 ? " thing" : " things") + " · " + now() });
+  } else if (/tired|can.?t|later|lazy/i.test(t)) {
+    say({ gentle: "Tired is real. Do the smallest version, then rest.", firm: "Tired is noted. Ten pushups, then decide.", brutal: "Tired is the excuse you used twice this week. Ten pushups. Now." }[S.push]);
+  } else {
+    say("I log numbers. Try \"30 pushups\" or \"2 glasses of water\".");
+  }
+}
+
+/* ---------- Recap ---------- */
+const SPICE = {
+  mild: { done: (n, t) => `${n} hit all ${t}. Nice and steady.`, part: (n, v, t) => `${n} got to ${v} of ${t}. Close.`, zero: n => `${n} hasn't started yet. Tomorrow's a new day.` },
+  spicy: { done: (n, t) => `${n} finished all ${t}. Showing off again.`, part: (n, v, t) => `${n} stopped at ${v}. ${t - v} short and acting like it's fine.`, zero: n => `${n} logged zero. The squad is not convinced.` },
+  savage: { done: (n, t) => `${n} did all ${t}. Everyone else, take notes.`, part: (n, v, t) => `${n} quit at ${v}. The other ${t - v} are still waiting.`, zero: n => `${n} logged nothing. Not one rep. We noticed.` },
+};
+function boardRows(c) {
+  const rows = S.squad.members.map(m => ({ id: m.id, name: m.name, val: c.vals[m.id] != null ? c.vals[m.id] : 0 }));
+  rows.push({ id: "me", name: "You", val: myChalVal(c), me: true });
+  rows.sort((a, b) => b.val - a.val);
+  return rows;
+}
+function makeRecap() {
+  const c = activeChal(); if (!c) return;
+  if (S.squad.nudged && c.vals.rohan != null && c.vals.rohan < c.target / 2) c.vals.rohan = Math.round(c.target * 0.4);
+  const sp = SPICE[c.spice] || SPICE.spicy;
+  const lines = boardRows(c).map(r => {
+    const who = r.me ? "You" : r.name;
+    const t = c.type === "kilos" ? c.target : c.target;
+    let line;
+    if (c.type === "kilos") line = r.val >= c.target ? `${who} reached ${c.target} kg lost. Goal done.` : `${who} is at ${r.val} kg lost of ${c.target}. Steady counts.`;
+    else if (c.type === "streak") line = r.val >= c.target ? `${who} made it to ${c.target} days in a row.` : `${who} is on day ${r.val} of ${c.target}. Don't break it now.`;
+    else if (r.val >= t) line = sp.done(who, t);
+    else if (r.val <= 0) line = sp.zero(who);
+    else line = sp.part(who, r.val, t);
+    if (!r.me && r.id === "rohan" && S.squad.nudged && r.val > 0) line = `Rohan got nudged and did ${r.val}. The nudge works. Keep it coming.`;
+    return [r.me ? "Your coach" : r.name + "'s coach", line];
+  });
+  S.squad.recap = { at: "Tonight · " + (c.time || "10 pm"), fresh: true, lines };
+}
+
+/* ---------- Render ---------- */
+const app = document.getElementById("app");
+function render() {
+  const main0 = app.querySelector(".main");
+  const keep = main0 ? main0.scrollTop : 0;
+  const prevView = app.dataset.view;
+  // Keep anything the person is typing, and where the cursor was
+  const typed = [...app.querySelectorAll("input[id]")].map(i => [i.id, i.value]);
+  const focused = document.activeElement && app.contains(document.activeElement) ? document.activeElement.id : null;
+  app.className = "app" + (device === "laptop" ? " wide" : "");
+  app.dataset.view = S.view;
+  app.innerHTML = statusBar() + `<main class="main" id="main">${viewHTML()}</main>` + navHTML() + overlays();
+  typed.forEach(([id, v]) => { const i = document.getElementById(id); if (i && i.type === "text" && !i.value) i.value = v; });
+  if (focused) { const f = document.getElementById(focused); if (f) { f.focus({ preventScroll: true }); if (f.setSelectionRange && f.type === "text") f.setSelectionRange(f.value.length, f.value.length); } }
+  const main = app.querySelector(".main");
+  if (UI.scrollTo) { const el = app.querySelector(UI.scrollTo); if (el) main.scrollTop += el.getBoundingClientRect().top - main.getBoundingClientRect().top - 16; UI.scrollTo = null; }
+  else if (UI.chatScroll) main.scrollTop = main.scrollHeight;
+  else if (prevView === S.view) main.scrollTop = keep;
+  UI.chatScroll = false;
+  UI.bump = null;
+  save();
+}
+function statusBar() {
+  return `<div class="status"><span>9:41</span><span class="sicons"><span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="bat"><i></i></span></span></div>`;
+}
+function navHTML() {
+  const t = (k, l) => `<button type="button" data-a="go" data-v="${k}" ${S.view === k || (k === "me" && S.view === "history") ? 'aria-current="page"' : ""}><span class="ico">${ICON[k]}</span>${l}</button>`;
+  return `<nav class="nav" aria-label="App"><span class="wm">Clocked</span>${t("today", "Today")}${t("squad", "Squad")}${t("sarge", "Sarge")}${t("me", "Me")}<span class="nav-foot">Logging is quicker on your phone. Open Clocked there and add it to your home screen.</span></nav>`;
+}
+function viewHTML() {
+  if (S.view === "squad") return squadHTML();
+  if (S.view === "sarge") return sargeHTML();
+  if (S.view === "me") return meHTML();
+  if (S.view === "history") return historyHTML();
+  return todayHTML();
+}
+function headHTML(d, title, right) {
+  return `<div class="head"><div><div class="d">${d}</div><h2>${title}</h2></div>${right || ""}</div>`;
+}
+function streakBtn() { return `<button type="button" class="streak" data-a="go" data-v="history" aria-label="${S.streak} day streak. See your week"><b>${S.streak}</b><span>DAY STREAK</span></button>`; }
+
+function todayHTML() {
+  const v = visible(), sch = v.filter(scheduled), done = sch.filter(isDone).length;
+  const pct = sch.length ? Math.round(done / sch.length * 100) : 0;
+  let body;
+  if (S.style === "list") body = listHTML(v);
+  else if (S.style === "chat") body = chatBlock(true);
+  else body = tilesHTML(v);
+  return `<div class="view">
+    ${headHTML("Tue 21 Oct", "Today", streakBtn())}
+    <div class="today-grid">
+      <div class="view">
+        <form class="cmdbar" data-form="cmd"><span class="ico">${ICON.mic}</span><input id="cmdInput" type="text" autocomplete="off" placeholder='Log anything. Try "40 pushups, 2 glasses of water"' aria-label="Log anything"><button type="submit" class="pill">Log</button></form>
+        <button type="button" class="ticker" data-a="go" data-v="sarge"><b>SARGE</b>${esc(sargeLine())}</button>
+        <div class="progress"><span>${done} of ${sch.length} done</span><span class="pb"><i style="width:${pct}%"></i></span></div>
+        ${body}
+      </div>
+      <div class="today-side">${S.squad && activeChal() ? boardHTML(activeChal(), true) + gossipHTML(true) : S.squad ? `<div class="card empty">No challenge running yet.<button type="button" class="pill" data-a="go" data-v="squad">Start one</button></div>` : `<div class="card empty">No squad yet.<button type="button" class="pill" data-a="go" data-v="squad">Find your squad</button></div>`}</div>
+    </div>
+  </div>`;
+}
+function tileHTML(h) {
+  const rest = !scheduled(h), done = isDone(h) && !rest;
+  const pct = h.kind === "sleep" ? (h.val ? 100 : 0) : Math.min(100, h.val / h.goal * 100);
+  const cls = ["tile", done ? "done" : "", rest ? "rest" : "", UI.bump === h.id ? "bump" : "", UI.hl === h.id ? "hl" : ""].join(" ");
+  const act = rest ? "rest" : done ? ICON.check : stepText(h);
+  const sub = rest ? `rest day · back ${nextDay(h)}` : goalText(h);
+  const label = `${h.name}: ${rest ? "rest day" : valText(h) + " " + sub}. ${rest ? "" : done ? "Done." : "Tap to add, hold to set an exact number."}`;
+  return `<button type="button" class="${cls}" data-a="tap" data-id="${h.id}" data-tile="${h.id}" aria-label="${esc(label)}"><span class="fill" style="height:${rest ? 0 : pct}%"></span><span class="act">${act}</span><span class="lbl">${esc(h.name)}</span><span><span class="num">${rest ? "Rest" : esc(valText(h))}</span><br><span class="sub">${esc(sub)}</span></span></button>`;
+}
+function tilesHTML(v) {
+  if (!v.length) return `<div class="tiles"><button type="button" class="tile add" data-a="addHabit"><span class="plus">+</span>Add your first habit</button><button type="button" class="tile say" data-a="voice"><span class="ico">${ICON.mic}</span>Hold to say it</button></div>`;
+  return `<div class="tiles">${v.map(tileHTML).join("")}<button type="button" class="tile add" data-a="addHabit"><span class="plus">+</span>Add habit</button><button type="button" class="tile say" data-a="voice"><span class="ico">${ICON.mic}</span>Hold to say it</button></div><p class="hint">Tap a tile to add. Hold it to set an exact number or change it.</p>`;
+}
+function listHTML(v) {
+  if (!v.length) return `<div class="card empty">Nothing to track yet.<button type="button" class="pill" data-a="addHabit">Add a habit</button></div>`;
+  const rows = v.map(h => {
+    const rest = !scheduled(h), done = isDone(h) && !rest;
+    const pct = h.kind === "sleep" ? (h.val ? 100 : 0) : Math.min(100, h.val / h.goal * 100);
+    const ctrl = rest ? `<span class="hr">rest · ${nextDay(h)}</span>` : done ? `<button type="button" class="lstamp" data-a="exact" data-id="${h.id}" aria-label="${esc(h.name)} done. Change it">${h.doneAt || h.at || "done"}</button>` : `<button type="button" class="lbtn" data-a="tap" data-id="${h.id}">${stepText(h)}</button>`;
+    return `<div class="lrow"><div><b>${esc(h.name)}</b><small>${esc(valText(h))} ${esc(goalText(h))}</small><div class="lbar"><i style="width:${rest ? 0 : pct}%"></i></div></div>${ctrl}</div>`;
+  }).join("");
+  return `<div class="list">${rows}</div><div class="row"><button type="button" class="pill ghost" data-a="addHabit">Add habit</button><button type="button" class="pill" data-a="voice">Say it</button></div>`;
+}
+function boardHTML(c, compact) {
+  const unit = c.type === "kilos" ? " kg" : "";
+  const fmt = v => c.type === "kilos" ? String(v) : String(v).padStart(3, "0");
+  const rows = boardRows(c).map((r, i) => `<div class="br${r.me ? " me" : ""}"><span class="r">${i + 1}</span><span class="nm">${esc(r.name)}</span><span class="sc">${fmt(r.val)}</span></div>`).join("");
+  const rules = compact ? "" : `<div class="rules"><span>${{ trust: "Honour system", photo: "Photo proof", voice: "Voice-note proof" }[c.proof]}</span><span>${{ none: "No stakes", coffee: "Loser buys coffee", dare: "Loser does a dare" }[c.stakes]}</span><span>Recap ${esc(c.time)} · ${esc(c.spice)}</span></div>`;
+  return `<div class="board"><div class="bh"><span>DAY ${String(c.day).padStart(2, "0")}/${c.length}</span><span>LIVE${unit}</span></div><h3>${esc(c.title)}</h3>${rows}${rules}</div>`;
+}
+function gossipHTML(compact) {
+  if (!S.squad) return "";
+  const r = S.squad.recap;
+  const lines = (compact ? r.lines.slice(0, 2) : r.lines).map(([who, t]) => `<p><b>${esc(who)}:</b> ${esc(t)}</p>`).join("");
+  return `<div class="gossip${r.fresh && !compact ? " fresh" : ""}" id="gossip"><div class="gh"><b>${r.fresh ? "Tonight's gossip" : "Last night's gossip"}</b><span>${esc(r.at)}</span></div>${lines}${compact ? "" : '<span class="note">Everyone in the squad sees this. Coaches only use the stats each person shares.</span>'}</div>`;
+}
+
+function squadHTML() {
+  if (!S.squad) {
+    return `<div class="view">${headHTML("Squad", "No squad yet")}<div class="card empty"><p>A squad is 3 to 5 friends with one shared goal. Your coaches gossip about how everyone did, every night.</p><button type="button" class="pill" data-a="joinSample">Join The Grind Squad (sample invite)</button><button type="button" class="pill ghost" data-a="startSquad">Start your own squad</button></div></div>`;
+  }
+  const c = activeChal();
+  const members = S.squad.members.map(m => `<div class="mem-row"><span class="av">${esc(m.name[0])}</span><div><b>${esc(m.name)}</b><div class="mini">${m.shares.map(s => `<span>${esc(s)}</span>`).join("")}</div></div></div>`).join("")
+    + `<div class="mem-row"><span class="av me">${esc(S.name[0])}</span><div><b>You</b><div class="mini">${shareChips().map(s => `<span>${esc(s)}</span>`).join("")}</div></div></div>`;
+  const chals = S.squad.challenges.map((ch, i) => `<div class="chal-row"><div><b>${esc(ch.title)}</b><small>Day ${ch.day} of ${ch.length}${i === S.squad.active ? " · showing" : ""}</small></div>${i === S.squad.active ? "" : `<button type="button" class="chip" data-a="showChal" data-i="${i}">Show</button>`}</div>`).join("");
+  const others = S.squad.members.filter(m => (c && c.vals[m.id] != null ? c.vals[m.id] : 1) < (c ? c.target : 1));
+  const nudgeTarget = others.length ? others[others.length - 1] : null;
+  return `<div class="view">
+    ${headHTML(S.squad.members.length + 1 + " people", esc(S.squad.name), `<button type="button" class="pill sun" data-a="invite">Invite</button>`)}
+    <div class="squad-grid">
+      <div class="squad-col">
+        ${c ? boardHTML(c, false) : `<div class="card empty">No challenge running.</div>`}
+        <div class="row">${nudgeTarget ? `<button type="button" class="pill ghost" data-a="nudge" data-id="${nudgeTarget.id}">${S.squad.nudged ? "Nudged " + esc(nudgeTarget.name) : "Nudge " + esc(nudgeTarget.name)}</button>` : ""}<button type="button" class="pill" data-a="newChal">Start a challenge</button></div>
+        <div class="card"><span class="label">Challenges</span>${chals}</div>
+      </div>
+      <div class="squad-col">
+        ${gossipHTML(false)}
+        <div class="card"><span class="label">What everyone shares</span>${members}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function chatBlock(inToday) {
+  const msgs = S.chat.map(m => {
+    const b = `<div class="msg ${m.f}">${esc(m.t)}<time>${esc(m.at || "")}</time></div>`;
+    return b + (m.log ? `<span class="logline">${esc(m.log)}</span>` : "");
+  }).join("");
+  const qr = S.flow ? `<div class="qr">${flowOptions().map(([l, c]) => `<button type="button" data-a="flow" data-code="${c}" data-label="${esc(l)}">${esc(l)}</button>`).join("")}</div>` : `<div class="qr"><button type="button" data-a="checkin">Check in now</button></div>`;
+  return `<div class="chat-wrap"><div class="chat" aria-live="polite">${msgs || '<p class="hint">Sarge will say hello once you log something.</p>'}</div><span id="chatEnd"></span>${qr}
+    <form class="composer" data-form="chat"><input id="chatInput" type="text" autocomplete="off" placeholder="Tell Sarge what you did" aria-label="Message Sarge"><button type="button" class="roundbtn" data-a="voice" aria-label="Say it">${ICON.mic}</button><button type="submit" class="roundbtn blue" aria-label="Send">${ICON.send}</button></form></div>`;
+}
+function sargeHTML() {
+  const mem = S.memory.length ? S.memory.map((m, i) => `<span>${esc(m)}<button type="button" data-a="forget" data-i="${i}" aria-label="Forget ${esc(m)}">×</button></span>`).join("") : '<span>Nothing yet</span>';
+  return `<div class="view">
+    <div class="sarge-head"><span class="stripes">${ICON.sarge}</span><div><h2>Sarge</h2><span>Your coach · ${{ gentle: "Gentle", firm: "Firm", brutal: "Brutal" }[S.push]}</span></div></div>
+    <div class="sarge-grid">
+      ${chatBlock(false)}
+      <div class="sarge-side">
+        <div class="card" style="display:flex;flex-direction:column;gap:8px"><span class="label">How hard Sarge pushes</span>${dialHTML()}<p class="hint" style="text-align:left">Hard on effort. Never on bodies or food.</p></div>
+        <div class="card" style="display:flex;flex-direction:column;gap:8px"><span class="label">What Sarge remembers · tap × to forget</span><div class="memchips">${mem}</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+function dialHTML() {
+  return `<div class="dial" role="group" aria-label="How hard Sarge pushes">${["gentle", "firm", "brutal"].map(l => `<button type="button" data-a="push" data-l="${l}" aria-pressed="${S.push === l}">${cap(l)}</button>`).join("")}</div>`;
+}
+function shareChips() {
+  const out = [];
+  const p = H("push"), sl = H("sleep"), fo = H("focus"), me_ = H("meals");
+  if (S.share.streak) out.push("Streak " + S.streak);
+  if (S.share.workouts && p) out.push(`Pushups ${p.val}/${p.goal}`);
+  if (S.share.sleep && sl && sl.val) out.push("Slept " + sl.note);
+  if (S.share.focus && fo) out.push("Focus " + hm(fo.val));
+  if (S.share.weight) out.push("Kilos lost 1.2");
+  if (S.share.meals && me_) out.push(`Meals ${me_.val}/${me_.goal}`);
+  return out.length ? out : ["Nothing shared"];
+}
+function meHTML() {
+  const sw = (key, title, sub) => `<div class="tg"><div><b>${title}</b><small>${sub}</small></div><button type="button" class="sw" data-a="share" data-k="${key}" aria-pressed="${!!S.share[key]}" aria-label="Share ${title}"></button></div>`;
+  const areas = AREAS.map(([k, l, d]) => `<div class="tg"><div><b>${l}</b><small>${d}</small></div><button type="button" class="sw" data-a="area" data-k="${k}" aria-pressed="${S.areas[k] !== false}" aria-label="Track ${l}"></button></div>`).join("");
+  const habits = S.habits.length ? S.habits.map(h => `<button type="button" class="hrow" data-a="editHabit" data-id="${h.id}"><span><b>${esc(h.name)}</b><small>${h.kind === "sleep" ? "Hours slept" : (h.unit === "min" ? hm(h.goal) : h.goal) + " " + unitLabel(h) + " a day"}${areaOn(h) ? "" : " · area off"}</small></span><span class="days">${DLETTER.map((d, i) => h.days.includes(i) ? d : "·").join(" ")}</span></button>`).join("") : '<p class="hint">No habits yet.</p>';
+  return `<div class="view">
+    ${headHTML("Me", "Settings")}
+    <div class="card profile"><span class="av me">${esc(S.name[0])}</span><div><b>${esc(S.name)}</b><small>${S.streak}-day streak · best ${S.best} · ${S.squad ? esc(S.squad.name) : "no squad"}</small></div></div>
+    <div class="me-grid">
+      <div class="sec${UI.hl === "style" ? " hl" : ""}" id="secStyle"><h3>Today screen</h3><p class="lead">How your day looks when you open the app.</p><div class="chips">${[["tiles", "Tiles"], ["list", "List"], ["chat", "Chat with Sarge"]].map(([k, l]) => `<button type="button" class="chip" data-a="style" data-s="${k}" aria-pressed="${S.style === k}">${l}</button>`).join("")}</div></div>
+      <div class="sec"><h3>Coach</h3><p class="lead">How hard Sarge pushes you.</p>${dialHTML()}</div>
+      <div class="sec${UI.hl === "share" ? " hl" : ""}" id="secShare"><h3>What your squad sees</h3><p class="lead">The coaches gossip from this card and nothing else.</p>
+        ${sw("streak", "Streak", S.streak + " days")}${sw("workouts", "Workouts", "Pushups and gym")}${sw("sleep", "Sleep", "Hours slept")}${sw("focus", "Focus time", "Work hours")}${sw("weight", "Kilos lost", "Never your actual weight")}${sw("meals", "Meals", "How many, not what")}
+        <div class="tg"><div><b>Journal</b><small>Never shared</small></div><span class="locked">${ICON.lock}Private</span></div>
+        <div class="pcard"><div class="ph"><span>YOUR SQUAD CARD</span><span>${esc(S.name.toUpperCase())}</span></div><div class="pc">${shareChips().map(s => `<span>${esc(s)}</span>`).join("")}</div></div>
+      </div>
+      <div class="sec"><h3>Life areas</h3><p class="lead">Turn off what you don't track. Its tiles hide.</p>${areas}</div>
+      <div class="sec"><h3>Habits</h3><p class="lead">Tap one to change its goal or days.</p>${habits}<button type="button" class="pill ghost" data-a="addHabit" style="align-self:flex-start">Add habit</button></div>
+      <div class="sec"><h3>The app</h3><div class="tg"><div><b>On your home screen</b><small>Installed</small></div><span class="locked">${ICON.check}Done</span></div><div class="tg"><div><b>Notifications</b><small>Morning plan, evening call-out, nightly gossip</small></div><span class="locked">${ICON.check}On</span></div><div class="row"><button type="button" class="pill ghost" data-a="go" data-v="history">See your week</button></div></div>
+    </div>
+  </div>`;
+}
+const HIST = {
+  push: ["s:21:40", "s:07:15", "s:20:05", "m", "c", "s:19:30"],
+  water: ["s:8/8", "s:8/8", "p:6/8", "s:8/8", "s:8/8", "s:8/8"],
+  focus: ["s:4:10", "s:4:00", "s:4:25", "r", "r", "s:4:05"],
+  sleep: ["s:7:05", "s:6:40", "s:7:20", "s:8:10", "s:7:45", "s:6:30"],
+  meals: ["s:3/3", "s:3/3", "s:3/3", "p:2/3", "s:3/3", "s:3/3"],
+  read: ["s:22:50", "m", "s:23:10", "m", "s:22:15", "s:22:40"],
+  gym: ["s:18:30", "r", "s:19:00", "r", "r", "s:18:45"],
+};
+function historyHTML() {
+  const cols = ["Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue"];
+  const cell = c => {
+    if (!c) return '<span class="hm">·</span>';
+    const k = c[0], v = c.slice(2);
+    return k === "s" ? `<span class="hs">${v}</span>` : k === "p" ? `<span class="hp">${v}</span>` : k === "c" ? '<span class="hc">comeback</span>' : k === "r" ? '<span class="hr">rest</span>' : '<span class="hm">missed</span>';
+  };
+  const rows = visible().map(h => {
+    const past = HIST[h.id] || [null, null, null, null, null, null];
+    const today = !scheduled(h) ? "r" : isDone(h) ? "s:" + (h.unit === "min" ? hm(h.val) : h.kind === "sleep" ? valText(h) : h.doneAt || "done") : "p:" + (h.unit === "min" ? hm(h.val) : h.kind === "once" ? "not yet" : h.val + "/" + h.goal);
+    return `<tr><td>${esc(h.name)}</td>${past.map(cell).join("")}<td>${cell(today)}</td></tr>`;
+  }).join("");
+  return `<div class="view">
+    <button type="button" class="back" data-a="go" data-v="today">‹ Today</button>
+    ${headHTML("Wed 15 to Tue 21 Oct", "Your week", streakBtn())}
+    <div class="ticker" style="cursor:default"><b>SARGE</b>Six of seven days clocked. You missed pushups on Saturday and came back on Sunday. That's the deal. Reading is the weak spot.</div>
+    <div class="hist-scroll"><table class="hist"><thead><tr><th>Habit</th>${cols.map((c, i) => `<th class="${i === 6 ? "now" : ""}">${c}${i === 6 ? " · today" : ""}</th>`).join("")}</tr></thead><tbody>${rows || '<tr><td colspan="8">No habits yet.</td></tr>'}</tbody></table></div>
+    <p class="hint" style="text-align:left"><span class="hs">06:30</span> clocked · <span class="hp">5/8</span> in progress · <span class="hc">comeback</span> won back a missed day · <span class="hr">rest</span> planned rest, the streak is safe</p>
+  </div>`;
+}
+
+/* ---------- Overlays ---------- */
+function overlays() {
+  let out = "";
+  if (UI.banner) out += `<button type="button" class="banner" data-a="banner"><span class="bi">C</span><span><span class="bt"><span>CLOCKED · ${esc(UI.banner.who)}</span><span>${esc(UI.banner.time)}</span></span><p>${UI.banner.html}</p></span></button>`;
+  if (UI.toast) out += `<div class="toast" role="status">${esc(UI.toast)}</div>`;
+  if (UI.sheet) out += `<div class="scrim" data-a="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(sheetTitle())}">${sheetHTML()}</div></div>`;
+  if (!S.onboarded) out += onbHTML();
+  return out;
+}
+function sheetTitle() { return { exact: "Set an exact number", voice: "Say it", meal: "Snap a meal", habit: "Habit", chal: "Start a challenge", invite: "Invite friends", proof: "Proof" }[UI.sheet.k] || "Sheet"; }
+function sheetHTML() {
+  const s = UI.sheet;
+  const close = `<button type="button" class="textbtn" data-a="close">Cancel</button>`;
+  if (s.k === "exact") {
+    const h = H(s.id);
+    if (h.kind === "sleep") {
+      const opts = ["5h 30m", "6h", "6h 30m", "7h", "7h 10m", "7h 30m", "8h", "8h 30m"];
+      return `<div class="grab"></div><h3>Last night's sleep</h3><p class="lead">Tap how long you slept. Sarge asks this every morning.</p><div class="chips">${opts.map(o => `<button type="button" class="chip" data-a="sleepSet" data-o="${o}" aria-pressed="${h.note === o}">${o}</button>`).join("")}</div><div class="actions">${close}<button type="button" class="textbtn" data-a="editHabit" data-id="${h.id}">Edit habit</button></div>`;
+    }
+    const shown = h.unit === "min" ? hm(s.val) : h.kind === "once" ? (s.val >= h.goal ? "Done" : "Not yet") : s.val;
+    const quick = h.kind === "once" ? [["Not yet", 0], ["Done", h.goal]] : [[0, 0], [h.unit === "min" ? hm(Math.round(h.goal / 2)) : Math.round(h.goal / 2), Math.round(h.goal / 2)], [h.unit === "min" ? hm(h.goal) : h.goal, h.goal]];
+    return `<div class="grab"></div><h3>${esc(h.name)}</h3><p class="lead">Set exactly where you are today. Goal: ${h.unit === "min" ? hm(h.goal) : h.goal} ${unitLabel(h)}.</p>
+      ${h.kind === "once" ? "" : `<div class="stepper"><button type="button" data-a="exactStep" data-d="-1" aria-label="Less">−</button><output aria-live="polite">${shown}</output><button type="button" data-a="exactStep" data-d="1" aria-label="More">+</button></div>`}
+      <div class="chips" style="justify-content:center">${quick.map(([l, v]) => `<button type="button" class="chip" data-a="exactSet" data-v="${v}" aria-pressed="${s.val === v}">${l}</button>`).join("")}</div>
+      <div class="actions"><button type="button" class="pill" data-a="exactSave">Save</button>${close}</div>
+      <button type="button" class="textbtn" data-a="editHabit" data-id="${h.id}">Change goal, step or days</button>`;
+  }
+  if (s.k === "voice") {
+    if (s.phase === "listen") return `<div class="grab"></div><h3>Listening</h3><p class="lead">Say your day. Something like "did 40 pushups and read 20 pages".</p><div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="actions"><button type="button" class="pill" data-a="voiceStop">I'm done talking</button>${close}</div>`;
+    const items = s.items;
+    const list = items.length ? items.map(it => `<div class="pitem"><span class="tick">${ICON.check}</span><div><b>${esc(it.label)}${it.rough ? '<span class="rough">rough</span>' : ""}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ""}</div></div>`).join("") : `<p class="lead">Nothing in that matches your habits. Turn on the area, or add the habit first.</p>`;
+    return `<div class="grab"></div><h3>Heard you</h3><p class="heard">"${esc(s.text)}"</p><div class="parsed">${list}</div><div class="actions">${items.length ? `<button type="button" class="pill" data-a="voiceLog">Log ${items.length === 1 ? "it" : "all " + items.length}</button>` : ""}${close}</div><button type="button" class="textbtn" data-a="voiceAgain">Try another sentence</button>`;
+  }
+  if (s.k === "meal") {
+    const h = H(s.id);
+    const n = ["Breakfast", "Lunch", "Dinner", "Snack"][Math.min(h.meals.length, 3)];
+    const vf = `<div class="viewfinder"><div class="plate"><div class="dosa d1"></div><div class="dosa d2"></div><div class="bowl g"></div><div class="bowl r"></div></div><div class="bracket tl"></div><div class="bracket tr"></div><div class="bracket bl"></div><div class="bracket br2"></div>${s.phase === "thinking" ? '<div class="thinking">Looking at your plate…</div>' : ""}</div>`;
+    if (s.phase !== "est") return `<div class="grab"></div><h3>${n}</h3>${vf}<p class="lead">In the real app this is your camera.</p><button type="button" class="shutter" data-a="snap" aria-label="Take photo"><i></i></button>${close}`;
+    const logged = h.meals.length ? `<p class="lead">Logged today: ${h.meals.map(m => esc(m.name.toLowerCase())).join(", ")}.</p>` : "";
+    return `<div class="grab"></div><h3>${n}</h3>${vf}<p style="font-weight:700">2 dosa, coconut chutney, sambar <span class="rough">rough guess</span></p><div class="est"><div><b>340</b><span>kcal, about</span></div><div><b>9 g</b><span>protein, about</span></div></div><p class="lead">Photo guesses can be off by a third. Use them as a rough guide.</p>${logged}<div class="actions"><button type="button" class="pill" data-a="mealLog">Log it</button>${close}</div>`;
+  }
+  if (s.k === "habit") {
+    const d = s.d;
+    const unitChips = UNITS.map(([k, l]) => `<button type="button" class="chip" data-a="hd" data-f="unit" data-x="${k}" aria-pressed="${d.unit === k}">${l}</button>`).join("");
+    const areaChips = AREAS.map(([k, l]) => `<button type="button" class="chip" data-a="hd" data-f="area" data-x="${k}" aria-pressed="${d.area === k}">${l}</button>`).join("");
+    const days = DLETTER.map((l, i) => `<button type="button" data-a="hdDay" data-i="${i}" aria-pressed="${d.days.includes(i)}" aria-label="${DNAME[i]}">${l}</button>`).join("");
+    return `<div class="grab"></div><h3>${s.edit ? "Edit habit" : "New habit"}</h3>
+      <label class="field"><span class="label">Name</span><input id="hdName" data-in="name" type="text" value="${esc(d.name)}" placeholder="Guitar, steps, no sugar…" autocomplete="off"></label>
+      <div class="field"><span class="label">Life area</span><div class="chips">${areaChips}</div></div>
+      <div class="field"><span class="label">Counted in</span><div class="chips">${unitChips}</div></div>
+      <div class="row" style="flex-wrap:nowrap"><label class="field" style="flex:1"><span class="label">Daily goal${d.unit === "min" ? " (minutes)" : ""}</span><input data-in="goal" type="number" inputmode="numeric" min="1" value="${d.goal}"></label><label class="field" style="flex:1"><span class="label">One tap adds</span><input data-in="step" type="number" inputmode="numeric" min="1" value="${d.step}"></label></div>
+      <div class="field"><span class="label">Which days · the rest are rest days and keep your streak safe</span><div class="days7">${days}</div></div>
+      <div class="actions"><button type="button" class="pill" data-a="habitSave">${s.edit ? "Save" : "Add habit"}</button>${close}</div>
+      ${s.edit ? `<button type="button" class="textbtn" data-a="habitDelete" style="color:var(--accent)">Delete this habit</button>` : ""}`;
+  }
+  if (s.k === "chal") {
+    const c = s.c, st = s.step;
+    const bar = `<div class="steps">${[0, 1, 2, 3].map(i => `<i class="${i <= st ? "on" : ""}"></i>`).join("")}</div>`;
+    const ch = (f, x, l) => `<button type="button" class="chip" data-a="cd" data-f="${f}" data-x="${x}" aria-pressed="${String(c[f]) === String(x)}">${l}</button>`;
+    let body = "";
+    if (st === 0) {
+      const habitChips = S.habits.filter(h => h.kind === "count" || h.kind === "once").map(h => ch("habit", h.id, esc(h.name))).join("");
+      body = `<h3>What's the goal?</h3><div class="field"><span class="label">Type</span><div class="chips">${ch("type", "reps", "Reps a day")}${ch("type", "streak", "Longest streak")}${ch("type", "kilos", "Kilos lost")}${ch("type", "custom", "Any habit")}</div></div>
+        ${c.type === "reps" || c.type === "custom" ? `<div class="field"><span class="label">Counts this habit</span><div class="chips">${habitChips || '<span class="lead">Add a habit first</span>'}</div></div>` : ""}
+        ${c.type === "kilos" ? `<p class="lead">Only kilos lost are shared, never anyone's weight.</p>` : ""}
+        <label class="field"><span class="label">${c.type === "kilos" ? "Kilos to lose" : c.type === "streak" ? "Days in a row" : "Target each day"}</span><input data-in="target" type="number" min="1" inputmode="numeric" value="${c.target}"></label>`;
+    } else if (st === 1) {
+      body = `<h3>How long?</h3><div class="chips">${ch("length", 7, "7 days")}${ch("length", 30, "30 days")}${ch("length", 90, "90 days")}</div><p class="lead">Starts tomorrow for everyone in ${esc(S.squad.name)}.</p>`;
+    } else if (st === 2) {
+      body = `<h3>The rules</h3><div class="field"><span class="label">Proof</span><div class="chips">${ch("proof", "trust", "Take our word")}${ch("proof", "photo", "Photo for every log")}${ch("proof", "voice", "Voice note for every log")}</div></div><div class="field"><span class="label">Stakes</span><div class="chips">${ch("stakes", "none", "No stakes")}${ch("stakes", "coffee", "Loser buys coffee")}${ch("stakes", "dare", "Loser does a dare")}</div></div>`;
+    } else {
+      body = `<h3>The gossip</h3><div class="field"><span class="label">Recap time</span><div class="chips">${ch("time", "9 pm", "9 pm")}${ch("time", "10 pm", "10 pm")}${ch("time", "11 pm", "11 pm")}</div></div><div class="field"><span class="label">How spicy</span><div class="chips">${ch("spice", "mild", "Mild")}${ch("spice", "spicy", "Spicy")}${ch("spice", "savage", "Savage")}</div></div><div class="gossip"><div class="gh"><b>Sample line</b></div><p><b>Rohan's coach:</b> ${esc((SPICE[c.spice] || SPICE.spicy).part("Rohan", 60, 100))}</p></div>`;
+    }
+    return `<div class="grab"></div>${bar}${body}<div class="actions">${st > 0 ? `<button type="button" class="pill ghost" data-a="chalBack">Back</button>` : ""}<button type="button" class="pill" data-a="${st < 3 ? "chalNext" : "chalCreate"}">${st < 3 ? "Next" : "Start challenge"}</button></div>${close}`;
+  }
+  if (s.k === "invite") {
+    return `<div class="grab"></div><h3>Invite friends</h3><p class="lead">Anyone with this link joins ${esc(S.squad.name)}. Squads work best with 3 to 5 people.</p><div class="linkbox" id="inviteLink">clocked/j/grind-7Q2</div><div class="actions"><button type="button" class="pill" data-a="copyLink">Copy link</button>${close}</div><p class="hint">Sample link. The real one comes with the app.</p>`;
+  }
+  if (s.k === "proof") {
+    const h = H(s.id), c = activeChal();
+    if (s.phase === "ask") return `<div class="grab"></div><h3>Show the squad</h3><p class="lead">${esc(S.squad.name)} asks for ${c.proof === "photo" ? "a photo" : "a voice note"} with every ${esc(h.name.toLowerCase())} log. You set that rule when the challenge started.</p><div class="actions"><button type="button" class="pill" data-a="proofGo">${c.proof === "photo" ? "Take a photo" : "Record 5 seconds"}</button><button type="button" class="pill ghost" data-a="close">Later</button></div>`;
+    return `<div class="grab"></div><h3>Proof sent</h3><p class="lead">Your squad can see it next to tonight's numbers.</p><div class="actions"><button type="button" class="pill" data-a="close">Done</button></div>`;
+  }
+  return "";
+}
+
+/* ---------- Onboarding ---------- */
+const STARTERS = [
+  { id: "push", name: "Pushups", area: "fitness", unit: "reps", goal: 100, step: 10, kind: "count" },
+  { id: "water", name: "Water", area: "diet", unit: "glasses", goal: 8, step: 1, kind: "count" },
+  { id: "sleep", name: "Sleep", area: "sleep", unit: "hours", goal: 1, step: 1, kind: "sleep" },
+  { id: "focus", name: "Focus", area: "work", unit: "min", goal: 240, step: 25, kind: "count", days: [0, 1, 2, 3, 4] },
+  { id: "meals", name: "Meals", area: "diet", unit: "meals", goal: 3, step: 1, kind: "meal" },
+  { id: "read", name: "Read", area: "mind", unit: "pages", goal: 20, step: 20, kind: "once" },
+  { id: "gym", name: "Gym", area: "fitness", unit: "times", goal: 1, step: 1, kind: "once", days: [0, 2, 4] },
+  { id: "steps", name: "Steps", area: "fitness", unit: "steps", goal: 8000, step: 1000, kind: "count" },
+];
+function onbHTML() {
+  const o = UI.onb || (UI.onb = { step: 0, areas: { fitness: true, sleep: true, diet: true, work: true, mind: true }, picks: ["push", "water", "sleep", "read"], push: "firm", notif: false });
+  const steps = `<div class="steps">${[0, 1, 2, 3, 4, 5].map(i => `<i class="${i <= o.step ? "on" : ""}"></i>`).join("")}</div>`;
+  let body = "", foot = "";
+  if (o.step === 0) {
+    body = `<span class="stamp-in" style="align-self:flex-start">IN 06:42</span><div class="bigmark">Clocked</div><p class="lead">Clock in your day. Skip it, and your friends' coaches have you clocked.</p><p class="lead">Takes a minute to set up. Everything can be changed later.</p>`;
+    foot = `<button type="button" class="pill" data-a="onbNext">Set me up</button><button type="button" class="textbtn" data-a="onbSample">Skip and use sample data</button>`;
+  } else if (o.step === 1) {
+    body = `<h2>What do you want to track?</h2><p class="lead">Turn off anything you don't care about.</p><div class="card">${AREAS.map(([k, l, d]) => `<div class="tg"><div><b>${l}</b><small>${d}</small></div><button type="button" class="sw" data-a="onbArea" data-k="${k}" aria-pressed="${o.areas[k]}" aria-label="Track ${l}"></button></div>`).join("")}</div>`;
+    foot = `<button type="button" class="pill" data-a="onbNext">Next</button>`;
+  } else if (o.step === 2) {
+    const avail = STARTERS.filter(s => o.areas[s.area]);
+    body = `<h2>Pick your first habits</h2><p class="lead">Start small. Two or three is plenty. You can add your own after.</p><div class="chips">${avail.map(s => `<button type="button" class="chip" data-a="onbPick" data-id="${s.id}" aria-pressed="${o.picks.includes(s.id)}">${s.name} · ${s.kind === "sleep" ? "hours" : (s.unit === "min" ? hm(s.goal) : s.goal) + " " + (s.unit === "min" ? "" : s.unit)}</button>`).join("")}</div>`;
+    foot = `<button type="button" class="pill" data-a="onbNext"${o.picks.some(id => avail.find(a => a.id === id)) ? "" : " disabled"}>Next</button>`;
+  } else if (o.step === 3) {
+    const lines = { gentle: "Small step tonight? Even 20 pushups counts.", firm: "40 left. Two hours to go. Get it done.", brutal: "40 left. You said 100. The squad is watching. Move." };
+    body = `<h2>Meet Sarge</h2><p class="lead">Your coach. He checks in every morning and calls you out at night. How hard should he push?</p><div class="dial" role="group" aria-label="How hard Sarge pushes">${["gentle", "firm", "brutal"].map(l => `<button type="button" data-a="onbPush" data-l="${l}" aria-pressed="${o.push === l}">${cap(l)}</button>`).join("")}</div><div class="msg s" style="max-width:100%">${lines[o.push]}</div><p class="hint" style="text-align:left">Hard on effort, never on bodies or food. Change it any time.</p>`;
+    foot = `<button type="button" class="pill" data-a="onbNext">Next</button>`;
+  } else if (o.step === 4) {
+    body = `<h2>Put Clocked on your home screen</h2><p class="lead">On iPhone, Sarge can only reach you once the app is on your home screen.</p><div class="howto"><div><b>1</b><span>Tap the Share button in Safari</span></div><div><b>2</b><span>Choose "Add to Home Screen"</span></div><div><b>3</b><span>Open Clocked from your home screen</span></div></div><button type="button" class="pill ${o.notif ? "ghost" : "sun"}" data-a="onbNotif" style="align-self:flex-start">${o.notif ? "Notifications on ✓" : "Allow notifications"}</button>`;
+    foot = `<button type="button" class="pill" data-a="onbNext">Next</button>`;
+  } else {
+    body = `<h2>Got a squad?</h2><p class="lead">Friends make it stick. People who start with friends finish far more often than people who go alone.</p><div class="card" style="display:flex;flex-direction:column;gap:8px"><b>The Grind Squad</b><span class="lead">Sample invite from Aisha · 3 people · 100 pushups a day</span><button type="button" class="pill" data-a="onbFinish" data-squad="join">Join this squad</button></div>`;
+    foot = `<button type="button" class="pill ghost" data-a="onbFinish" data-squad="none">Later, take me to Today</button>`;
+  }
+  return `<div class="onb" role="dialog" aria-modal="true" aria-label="Set up Clocked"><div class="onb-card">${o.step > 0 ? steps : ""}${body}<div class="foot">${o.step > 0 ? `<button type="button" class="textbtn" data-a="onbBack" style="align-self:flex-start">‹ Back</button>` : ""}${foot}</div></div></div>`;
+}
+function finishOnboarding(squad) {
+  const o = UI.onb;
+  const fresh = sample();
+  S.areas = Object.assign({}, o.areas);
+  S.push = o.push;
+  S.habits = STARTERS.filter(s => o.picks.includes(s.id) && o.areas[s.area]).map(s => Object.assign({ val: 0, days: s.days ? s.days.slice() : ALL.slice() }, s, s.kind === "meal" ? { meals: [] } : {}, s.kind === "sleep" ? { val: 0, note: null } : {}));
+  S.squad = squad === "join" ? fresh.squad : null;
+  if (S.squad) { S.squad.challenges[0].vals = { aisha: 100, meera: 80, rohan: 0 }; S.squad.challenges[0].day = 9; }
+  S.onboarded = true; S.view = "today"; S.style = "tiles"; S.streak = 0; S.best = 0;
+  S.memory = [];
+  S.chat = [];
+  say({ gentle: "Hi. I'm Sarge. Log anything and I'll keep you company.", firm: "Sarge here. Log what you do. I'll check in morning and night.", brutal: "Sarge. I'll be checking. Don't make me chase you." }[S.push]);
+  UI.onb = null;
+  toast("You're set up. Tap a tile to clock in.");
+}
+
+/* ---------- Toast and banner ---------- */
+// Renders that a timer starts must not lose what someone is typing in a sheet
+function timedRender() { if (UI.sheet && (UI.sheet.k === "habit" || UI.sheet.k === "chal")) readInputs(); render(); }
+function toast(msg) {
+  UI.toast = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { UI.toast = null; timedRender(); }, 2600);
+}
+function banner(b) {
+  UI.banner = b;
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { UI.banner = null; timedRender(); }, 7000);
+}
+
+/* ---------- Actions ---------- */
+function go(view) { S.view = view; UI.sheet = null; if (view === "sarge" || (view === "today" && S.style === "chat")) UI.chatScroll = true; }
+function act(a, d) {
+  if (UI.sheet && (UI.sheet.k === "habit" || UI.sheet.k === "chal")) readInputs();
+  switch (a) {
+    case "go": go(d.v); break;
+    case "tap": { const h = H(d.id); if (h) tapHabit(h); break; }
+    case "exact": { const h = H(d.id); UI.sheet = { k: "exact", id: h.id, val: h.val }; break; }
+    case "exactStep": { const h = H(UI.sheet.id); UI.sheet.val = Math.max(0, UI.sheet.val + Number(d.d) * h.step); break; }
+    case "exactSet": UI.sheet.val = Number(d.v); break;
+    case "exactSave": { const h = H(UI.sheet.id); const was = isDone(h); h.val = UI.sheet.val; if (!was && isDone(h)) { h.doneAt = now(); toast(`${h.name} clocked at ${h.doneAt}.`); } else toast(`${h.name} set.`); UI.sheet = null; maybeProof(h); UI.bump = h.id; break; }
+    case "sleepSet": { const h = H(UI.sheet.id); h.note = d.o; h.val = 1; h.at = h.at || "06:30"; h.doneAt = h.at; UI.sheet = null; toast(`Slept ${d.o}. Logged.`); break; }
+    case "voice": openVoice(); return;
+    case "voiceStop": heard(); break;
+    case "voiceAgain": UI.voiceIdx = (UI.voiceIdx + 1) % VOICE.length; openVoice(); return;
+    case "voiceLog": { const items = UI.sheet.items; applyItems(items); say(`Heard you. ${items.map(i => i.label).join(", ")}.`, { log: `Clocked ${items.length} by voice · ${now()}` }); UI.sheet = null; toast(`${items.length} ${items.length === 1 ? "thing" : "things"} clocked. Sarge noticed.`); UI.voiceIdx = (UI.voiceIdx + 1) % VOICE.length; const c = activeChal(); const ph = c && items.find(i => i.id === c.habit); if (ph) maybeProof(H(c.habit)); break; }
+    case "snap": UI.sheet.phase = "thinking"; render(); setTimeout(() => { if (UI.sheet && UI.sheet.k === "meal") { UI.sheet.phase = "est"; render(); } }, reduce ? 200 : 900); return;
+    case "mealLog": { const h = H(UI.sheet.id); const m = addMeal(h, { what: "2 dosa, chutney, sambar", kcal: 340, protein: 9 }); UI.sheet = null; toast(`${m.name} logged. About 340 kcal, a rough guess.`); UI.bump = h.id; break; }
+    case "addHabit": UI.sheet = { k: "habit", edit: false, d: { name: "", area: "fitness", unit: "reps", goal: 50, step: 10, days: ALL.slice() } }; break;
+    case "editHabit": { const h = H(d.id); UI.sheet = { k: "habit", edit: h.id, d: { name: h.name, area: h.area, unit: h.unit, goal: h.goal, step: h.step, days: h.days.slice() } }; break; }
+    case "hd": UI.sheet.d[d.f] = d.x; if (d.f === "unit") { const u = d.x; Object.assign(UI.sheet.d, { goal: { min: 60, glasses: 8, pages: 20, times: 1, km: 5, steps: 8000, reps: 50 }[u] || 10, step: { min: 25, glasses: 1, pages: 10, times: 1, km: 1, steps: 1000, reps: 10 }[u] || 1 }); } break;
+    case "hdDay": { const i = Number(d.i), days = UI.sheet.d.days; UI.sheet.d.days = days.includes(i) ? days.filter(x => x !== i) : days.concat(i).sort(); break; }
+    case "habitSave": return saveHabit();
+    case "habitDelete": { const id = UI.sheet.edit; S.habits = S.habits.filter(h => h.id !== id); UI.sheet = null; toast("Habit deleted."); break; }
+    case "newChal": UI.sheet = { k: "chal", step: 0, c: { type: "reps", habit: (S.habits.find(h => h.kind === "count") || {}).id || "", target: 100, length: 30, proof: "trust", stakes: "coffee", time: "10 pm", spice: "spicy" } }; break;
+    case "cd": UI.sheet.c[d.f] = (d.f === "length") ? Number(d.x) : d.x; if (d.f === "type") UI.sheet.c.target = { reps: 100, streak: 30, kilos: 5, custom: 20 }[d.x]; if (d.f === "habit") { const h = H(d.x); if (h) UI.sheet.c.target = h.goal; } break;
+    case "chalNext": readInputs(); if (UI.sheet.step === 0 && (UI.sheet.c.type === "reps" || UI.sheet.c.type === "custom") && !H(UI.sheet.c.habit)) { toast("Pick the habit this challenge counts."); break; } UI.sheet.step++; break;
+    case "chalBack": readInputs(); UI.sheet.step--; break;
+    case "chalCreate": createChallenge(); break;
+    case "showChal": S.squad.active = Number(d.i); break;
+    case "invite": UI.sheet = { k: "invite" }; break;
+    case "copyLink": copyLink(); return;
+    case "nudge": S.squad.nudged = true; toast(`Nudge sent. Sarge will bring it up in tonight's recap.`); break;
+    case "joinSample": S.squad = sample().squad; toast("You joined The Grind Squad."); break;
+    case "startSquad": S.squad = { name: "Your squad", active: 0, nudged: false, members: [], challenges: [], recap: { at: "No recap yet", fresh: false, lines: [["Your coach", "Invite friends and start a challenge. The first recap comes after the first night."]] } }; UI.sheet = { k: "invite" }; break;
+    case "push": S.push = d.l; break;
+    case "forget": S.memory.splice(Number(d.i), 1); toast("Sarge forgot that."); break;
+    case "checkin": startFlow(); UI.chatScroll = true; break;
+    case "flow": answerFlow(d.code, d.label); UI.chatScroll = true; break;
+    case "style": S.style = d.s; toast(`Today screen: ${{ tiles: "tiles", list: "list", chat: "chat with Sarge" }[d.s]}.`); break;
+    case "share": S.share[d.k] = !S.share[d.k]; break;
+    case "area": S.areas[d.k] = !(S.areas[d.k] !== false); break;
+    case "proofGo": UI.sheet.phase = "sent"; break;
+    case "banner": { const b = UI.banner; UI.banner = null; clearTimeout(bannerTimer); if (b.go === "callout") { S.view = "sarge"; if (!S.flow) startFlow(); UI.chatScroll = true; } else if (b.go === "recap") { S.view = "squad"; UI.scrollTo = "#gossip"; } else if (b.go === "morning") { S.view = "sarge"; UI.chatScroll = true; } break; }
+    case "scrim": UI.sheet = null; break;
+    case "close": UI.sheet = null; break;
+    case "onbNext": UI.onb.step++; break;
+    case "onbBack": UI.onb.step--; break;
+    case "onbArea": UI.onb.areas[d.k] = !UI.onb.areas[d.k]; break;
+    case "onbPick": { const p = UI.onb.picks; UI.onb.picks = p.includes(d.id) ? p.filter(x => x !== d.id) : p.concat(d.id); break; }
+    case "onbPush": UI.onb.push = d.l; break;
+    case "onbNotif": UI.onb.notif = true; break;
+    case "onbSample": S = sample(); UI.onb = null; toast("Loaded the sample day."); break;
+    case "onbFinish": finishOnboarding(d.squad); break;
+    default: return;
+  }
+  render();
+}
+function openVoice() {
+  clearTimeout(listenTimer);
+  UI.sheet = { k: "voice", phase: "listen" };
+  render();
+  listenTimer = setTimeout(() => { if (UI.sheet && UI.sheet.k === "voice" && UI.sheet.phase === "listen") { heard(); render(); } }, reduce ? 500 : 1800);
+}
+function heard() {
+  clearTimeout(listenTimer);
+  const text = VOICE[UI.voiceIdx % VOICE.length];
+  UI.sheet = { k: "voice", phase: "heard", text, items: parse(text) };
+}
+function readInputs() {
+  app.querySelectorAll("[data-in]").forEach(inp => {
+    const k = inp.dataset.in;
+    if (UI.sheet && UI.sheet.k === "habit") UI.sheet.d[k] = k === "name" ? inp.value : Math.max(1, parseInt(inp.value, 10) || 1);
+    if (UI.sheet && UI.sheet.k === "chal" && k === "target") UI.sheet.c.target = Math.max(1, parseFloat(inp.value) || 1);
+  });
+}
+function saveHabit() {
+  readInputs();
+  const d = UI.sheet.d;
+  if (!d.name.trim()) { toast("Give the habit a name."); render(); return; }
+  if (!d.days.length) { toast("Pick at least one day."); render(); return; }
+  const kind = d.unit === "times" && d.goal === 1 ? "once" : "count";
+  if (UI.sheet.edit) {
+    const h = H(UI.sheet.edit);
+    const keepKind = h.kind === "sleep" || h.kind === "meal" ? h.kind : kind;
+    Object.assign(h, { name: d.name.trim(), area: d.area, unit: h.kind === "sleep" || h.kind === "meal" ? h.unit : d.unit, goal: h.kind === "sleep" ? 1 : d.goal, step: d.step, days: d.days.slice(), kind: keepKind });
+    toast(`${h.name} updated.`);
+  } else {
+    const id = "h" + Date.now().toString(36);
+    S.habits.push({ id, name: d.name.trim(), area: d.area, unit: d.unit, goal: d.goal, step: d.step, val: 0, days: d.days.slice(), kind });
+    if (S.areas[d.area] === false) S.areas[d.area] = true;
+    S.view = "today"; UI.hl = id; setTimeout(() => { UI.hl = null; render(); }, 2200);
+    toast(`${d.name.trim()} added. Tap it to clock in.`);
+  }
+  UI.sheet = null;
+  render();
+}
+function createChallenge() {
+  const c = UI.sheet.c, h = H(c.habit);
+  const titles = { reps: h ? `${c.target} ${h.unit === "reps" ? h.name.toLowerCase() : unitLabel(h) + " of " + h.name.toLowerCase()} a day` : `${c.target} a day`, streak: `${c.target}-day streak race`, kilos: `Lose ${c.target} kg`, custom: h ? `${h.name}: ${c.target} a day` : "Custom goal" };
+  const t = c.target;
+  const vals = c.type === "kilos" ? { aisha: 1.8, meera: 0.9, rohan: 0.4 } : c.type === "streak" ? { aisha: 21, meera: 9, rohan: 2 } : { aisha: t, meera: Math.round(t * 0.7), rohan: 0 };
+  const ch = { id: "c" + Date.now().toString(36), type: c.type, habit: c.type === "reps" || c.type === "custom" ? c.habit : null, title: titles[c.type], target: t, length: c.length, day: 1, proof: c.proof, stakes: c.stakes, time: c.time, spice: c.spice, vals };
+  S.squad.challenges.push(ch);
+  S.squad.active = S.squad.challenges.length - 1;
+  S.squad.nudged = false;
+  UI.sheet = null;
+  toast(`${ch.title} starts tomorrow. The squad got a notification.`);
+}
+function copyLink() {
+  const text = "clocked/j/grind-7Q2";
+  const done = () => { toast("Invite link copied."); UI.sheet = null; render(); };
+  const fallback = () => { const el = document.getElementById("inviteLink"); if (el) { const r = document.createRange(); r.selectNodeContents(el); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } toast("Couldn't copy here. The link is selected, so copy it yourself."); render(); };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+}
+
+/* ---------- Events ---------- */
+app.addEventListener("click", e => {
+  if (UI.longFired) { UI.longFired = false; e.preventDefault(); return; }
+  const el = e.target.closest("[data-a]");
+  if (!el || !app.contains(el)) return;
+  if (el.dataset.a === "scrim" && e.target !== el) return;
+  if (el.disabled) return;
+  act(el.dataset.a, el.dataset);
+});
+app.addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target.dataset.form;
+  const input = e.target.querySelector("input");
+  const text = input ? input.value : "";
+  if (!text.trim()) return;
+  input.value = "";
+  if (f === "chat") { handleText(text); UI.chatScroll = true; render(); const i = document.getElementById("chatInput"); if (i) i.focus({ preventScroll: true }); }
+  if (f === "cmd") {
+    const items = parse(text);
+    if (items.length) { applyItems(items); say(`Logged from the bar: ${items.map(i => i.label).join(", ")}.`); toast(`${items.length} ${items.length === 1 ? "thing" : "things"} clocked.`); }
+    else toast("Didn't catch a number. Try \"30 pushups\".");
+    render(); const i = document.getElementById("cmdInput"); if (i) i.focus({ preventScroll: true });
+  }
+});
+app.addEventListener("pointerdown", e => {
+  const t = e.target.closest("[data-tile]"); if (!t) return;
+  clearTimeout(pressTimer);
+  pressTimer = setTimeout(() => {
+    const h = H(t.dataset.tile); if (!h) return;
+    UI.longFired = true;
+    UI.sheet = { k: "exact", id: h.id, val: h.val };
+    render();
+    setTimeout(() => { UI.longFired = false; }, 700);
+  }, 480);
+});
+["pointerup", "pointerleave", "pointercancel"].forEach(ev => app.addEventListener(ev, () => clearTimeout(pressTimer)));
+app.addEventListener("contextmenu", e => {
+  const t = e.target.closest("[data-tile]"); if (!t) return;
+  e.preventDefault(); clearTimeout(pressTimer);
+  const h = H(t.dataset.tile); UI.sheet = { k: "exact", id: h.id, val: h.val }; render();
+});
+app.addEventListener("keydown", e => {
+  if (e.key === "Escape" && UI.sheet) { UI.sheet = null; render(); }
+});
+
+/* ---------- Page controls ---------- */
+const stage = document.getElementById("stage"), dev = document.getElementById("device");
+function setDevice(d) {
+  device = d;
+  try { localStorage.setItem(KEY + "-device", d); } catch (e) {}
+  dev.className = "device " + d;
+  stage.classList.toggle("laptop", d === "laptop");
+  document.querySelectorAll("[data-device]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.device === d)));
+  render();
+}
+document.querySelectorAll("[data-device]").forEach(b => b.addEventListener("click", () => setDevice(b.dataset.device)));
+const TRY = {
+  tap: () => { go("today"); S.style = "tiles"; UI.hl = "push"; setTimeout(() => { UI.hl = null; render(); }, 2500); if (!H("push")) toast("Add a Pushups habit first, or reset the prototype."); },
+  hold: () => { go("today"); S.style = "tiles"; const h = H("water") || S.habits[0]; if (h) UI.sheet = { k: "exact", id: h.id, val: h.val }; },
+  voice: () => { go("today"); openVoice(); return true; },
+  meal: () => { go("today"); const h = H("meals"); if (h) UI.sheet = { k: "meal", id: h.id, phase: "view" }; else toast("Turn on Diet and add Meals first."); },
+  add: () => { go("today"); act("addHabit", {}); return true; },
+  callout: () => { banner({ who: "SARGE", time: "8:30 pm", go: "callout", html: `<b>Sarge:</b> ${esc(sargeLine())}` }); },
+  recap: () => { if (!S.squad || !activeChal()) { go("squad"); toast("Join a squad and start a challenge first."); return; } makeRecap(); banner({ who: S.squad.name.toUpperCase(), time: activeChal().time, go: "recap", html: "<b>Tonight's gossip is in.</b> Find out who your coach is talking about." }); },
+  challenge: () => { go("squad"); if (S.squad) { act("newChal", {}); return true; } toast("Join a squad first."); },
+  share: () => { go("me"); UI.hl = "share"; UI.scrollTo = "#secShare"; setTimeout(() => { UI.hl = null; render(); }, 2500); },
+  style: () => { go("me"); UI.hl = "style"; UI.scrollTo = "#secStyle"; setTimeout(() => { UI.hl = null; render(); }, 2500); },
+  history: () => { go("history"); },
+  onboard: () => { S = blankUser(); UI.onb = null; UI.sheet = null; },
+};
+document.getElementById("tries").addEventListener("click", e => {
+  const b = e.target.closest("[data-try]"); if (!b) return;
+  if (!S.onboarded && b.dataset.try !== "onboard") { toast("Finish the setup first, or reset the prototype."); render(); return; }
+  const handled = TRY[b.dataset.try]();
+  if (!handled) render();
+  if (window.matchMedia("(max-width: 760px)").matches) document.getElementById("device").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+});
+document.getElementById("resetBtn").addEventListener("click", () => { S = sample(); UI.sheet = null; UI.onb = null; UI.banner = null; toast("Prototype reset to the sample day."); render(); });
+
+// Theme toggle
+function applyTheme(t) {
+  if (t) document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme");
+  document.querySelectorAll(".theme button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
+}
+let theme = null; try { theme = localStorage.getItem("clocked-proto-theme"); } catch (e) {}
+applyTheme(theme);
+document.querySelectorAll(".theme button").forEach(b => b.addEventListener("click", () => {
+  const next = document.documentElement.getAttribute("data-theme") === b.dataset.t ? null : b.dataset.t;
+  try { if (next) localStorage.setItem("clocked-proto-theme", next); else localStorage.removeItem("clocked-proto-theme"); } catch (e) {}
+  applyTheme(next);
+}));
+
+setDevice(device === "laptop" ? "laptop" : "phone");
+})();
+</script>
+
+</body></html>
