@@ -1,17 +1,18 @@
 # Clocked
 
-A personal life agent you share with friends.
+A social feed for discipline. The only thing you can post is proof you showed up.
 
 Clock in your workout. Skip it, and your friends' coaches have you clocked.
 
-It tracks your work, habits, streaks, sleep and diet. A tough-love coach, Sarge, checks in every day and calls you out when you slack. Add friends, share only the stats you choose, and set a shared goal, like 100 pushups a day or losing 5 kg. Every night the coaches post a banter recap to the group.
+It tracks exercise, sleep, food, weight, focus and any habit you add. Story rings show which friends have clocked in today. Squads of 3 to 5 friends run challenges with stakes, duels and a shared health bar. A tough-love coach, Sarge, pushes you, calls in a friend when you're about to miss, and posts a nightly debrief to the squad.
 
 ## Status
 
-Design stage. No app code yet.
+Step 1 of the build plan is built: a one-page app that tests whether Sarge's 8:30 pm notifications reach iPhones. Setup steps are in [docs/push-test.md](docs/push-test.md).
 
-- [design/prototype.html](design/prototype.html): a clickable prototype of the phone and laptop app. Download it and open it in a browser. The people and numbers in it are made up.
-- [docs/decisions.md](docs/decisions.md): what is decided, and the four decisions still open.
+- [design/prototype.html](design/prototype.html): the whole app as it will ship, from sign-in to the end of a challenge, on phone and laptop. Download it and open it in a browser. A panel beside the phone plays your friends, your inbox and the clock, so you can walk through a full day.
+- [docs/decisions.md](docs/decisions.md): what is decided.
+- [docs/build-plan.md](docs/build-plan.md): the order the real app gets built in, starting with the iPhone notification test.
 - [docs/research.md](docs/research.md): the market research behind it.
 
 ## The coach's limits

@@ -18,3 +18,7 @@ dist/
 .DS_Store
 .vercel/
 coverage/
+
+# TypeScript build cache
+*.tsbuildinfo
+next-env.d.ts
